@@ -1,0 +1,11 @@
+{
+  "@@locale": "en",
+  "profile": "Profile",
+  "logout": "Logout",
+  "settings": "Settings",
+  "languagePreference": "Language Preference",
+  "selectLanguage": "Select Language",
+  "close": "Close",
+  "unknown": "Unknown",
+  "noEmail": "No Email"
+}

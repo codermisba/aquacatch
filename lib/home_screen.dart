@@ -1,19 +1,48 @@
+import 'package:aquacatch/main.dart';
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 import 'components.dart';
 import 'assesment_page.dart';
 import 'profile_page.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
+
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
   final List<String> imageUrls = [
     "https://cdn1.byjus.com/wp-content/uploads/2023/05/Rainwater-harvesting-1.png",
     "https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/RWH-image.jpg/800px-RWH-image.jpg"
   ];
 
-  HomeScreen({super.key});
+  DateTime? lastBackPressTime;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    // ignore: deprecated_member_use
+    return WillPopScope(
+      onWillPop: () async {
+        DateTime now = DateTime.now();
+        if (lastBackPressTime == null ||
+            now.difference(lastBackPressTime!) > const Duration(seconds: 2)) {
+          lastBackPressTime = now;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Press back again to exit")),
+          );
+          return false;
+        }
+        // Exit the app
+        SystemNavigator.pop();
+        return true;
+      },
+      child: Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
         backgroundColor: primaryColor,
@@ -29,7 +58,13 @@ class HomeScreen extends StatelessWidget {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const ProfilePage()),
+                MaterialPageRoute(
+                builder: (_) => ProfilePage(
+                  setLocale: (locale) {
+                    MyApp.setLocale(context, locale);
+                  },
+                ),
+              ),
               );
             },
           ),
@@ -40,7 +75,7 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            _buildInfoCards(context),
+            _buildTopSection(context),
             const SizedBox(height: 25),
 
             // Get Started Button
@@ -55,11 +90,6 @@ class HomeScreen extends StatelessWidget {
             // Know More Section
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              // decoration: BoxDecoration(
-              //   color: primaryColor.withOpacity(0.1),
-              //   borderRadius: BorderRadius.circular(30),
-              //   border: Border.all(color: primaryColor, width: 2),
-              // ),
               child: const Text(
                 "Know More",
                 style: TextStyle(
@@ -74,6 +104,9 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 25),
 
             _buildLogoPlaceholders(),
+            const SizedBox(height: 20),
+
+            _buildCGWBLinkCard(), // ✅ moved here after logos
             const SizedBox(height: 30),
 
             _buildAboutSection(),
@@ -90,47 +123,107 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
 
-  // ---------------- Info Cards ----------------
-  Widget _buildInfoCards(BuildContext context) {
-    return Wrap(
-      spacing: 16,
-      runSpacing: 16,
-      alignment: WrapAlignment.center,
+  // ---------------- Top Section ----------------
+  Widget _buildTopSection(BuildContext context) {
+    return Column(
       children: [
-        _buildCard("Past Assessments", Icons.history, Colors.blue),
-        _buildCard("Reports", Icons.description, Colors.green),
-        _buildCard("No. of Statements", Icons.analytics, Colors.orange),
+        // Quick Stats Row
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildStatBox("Past Assessments", "12", Icons.history, Colors.blue),
+            _buildStatBox("Reports", "5", Icons.description, Colors.green),
+          ],
+        ),
+        const SizedBox(height: 20),
+
+        // Graph Section
+        Card(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          elevation: 5,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("Water Saved (Liters)",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 10),
+                SizedBox(
+                  height: 200,
+                  child: BarChart(
+                    BarChartData(
+                      alignment: BarChartAlignment.spaceAround,
+                      borderData: FlBorderData(show: false),
+                      titlesData: FlTitlesData(
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(showTitles: true, reservedSize: 32),
+                        ),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            getTitlesWidget: (value, meta) {
+                              switch (value.toInt()) {
+                                case 0:
+                                  return const Text("Jan");
+                                case 1:
+                                  return const Text("Feb");
+                                case 2:
+                                  return const Text("Mar");
+                                case 3:
+                                  return const Text("Apr");
+                              }
+                              return const Text("");
+                            },
+                          ),
+                        ),
+                      ),
+                      barGroups: [
+                        BarChartGroupData(x: 0, barRods: [
+                          BarChartRodData(toY: 50, color: Colors.blue, width: 18)
+                        ]),
+                        BarChartGroupData(x: 1, barRods: [
+                          BarChartRodData(toY: 80, color: Colors.blue, width: 18)
+                        ]),
+                        BarChartGroupData(x: 2, barRods: [
+                          BarChartRodData(toY: 100, color: Colors.blue, width: 18)
+                        ]),
+                        BarChartGroupData(x: 3, barRods: [
+                          BarChartRodData(toY: 60, color: Colors.blue, width: 18)
+                        ]),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildCard(String title, IconData icon, Color color) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 6,
-      shadowColor: Colors.grey.shade300,
-      child: Container(
-        width: 200,
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.all(12),
-              child: Icon(icon, size: 40, color: color),
-            ),
-            const SizedBox(height: 12),
-            Text(title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 16)),
-          ],
+  Widget _buildStatBox(String title, String value, IconData icon, Color color) {
+    return Expanded(
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 4,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Icon(icon, color: color, size: 30),
+              const SizedBox(height: 8),
+              Text(value,
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text(title, textAlign: TextAlign.center),
+            ],
+          ),
         ),
       ),
     );
@@ -184,6 +277,38 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  // ---------------- CGWB Link Card ----------------
+  Widget _buildCGWBLinkCard() {
+    return GestureDetector(
+      onTap: () async {
+        final url = Uri.parse("https://cgwb.gov.in/");
+        if (await canLaunchUrl(url)) {
+          await launchUrl(url, mode: LaunchMode.externalApplication);
+        }
+      },
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 5,
+        color: accentColor,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: const [
+              Icon(Icons.public, size: 40, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  "Visit Central Ground Water Board (CGWB) →",
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -303,24 +428,31 @@ class HomeScreen extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Column(
-          children: steps
-              .map(
-                (step) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.check_circle_outline, color: Colors.green),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(step,
-                            style: const TextStyle(fontSize: 16, height: 1.4)),
-                      ),
-                    ],
+          children: steps.asMap().entries.map((entry) {
+            int index = entry.key + 1;
+            String step = entry.value;
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: 14,
+                    backgroundColor: primaryColor,
+                    child: Text(
+                      "$index",
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                    ),
                   ),
-                ),
-              )
-              .toList(),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(step,
+                        style: const TextStyle(fontSize: 16, height: 1.5)),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
         ),
       ],
     );

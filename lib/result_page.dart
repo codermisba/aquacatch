@@ -2,211 +2,322 @@ import 'package:flutter/material.dart';
 import 'components.dart';
 
 class ResultPage extends StatelessWidget {
-  final double rainfall;
+  final double annualRainfall;
   final double potentialLiters;
   final String structure;
   final double cost;
   final double savings;
+  final int dwellers;
+  final double roofArea;
 
   const ResultPage({
     super.key,
-    required this.rainfall,
+    required this.annualRainfall,
     required this.potentialLiters,
     required this.structure,
     required this.cost,
     required this.savings,
+    required this.dwellers,
+    required this.roofArea,
   });
 
-  // Map-based image loader
-  Widget showStructureImage(String structure) {
-    Map<String, String> images = {
-      "Small tank on rooftop": "images/small.jpg",
-      "Medium-sized surface tank": "images/medium.jpg",
-      "Large underground tank": "images/large.jpg",
-    };
+  // Map structure labels
+  String getStructureLabel() {
+    switch (structure.toLowerCase()) {
+      case "small tank on rooftop":
+        return "Small Rooftop Tank";
+      case "medium-sized surface tank":
+        return "Medium Surface Tank";
+      case "large underground tank":
+        return "Large Underground Tank";
+      default:
+        return "No Harvesting Needed";
+    }
+  }
 
-    String? imagePath = images[structure];
-    if (imagePath == null) return const SizedBox(); // No image
-
-    return Builder(builder: (context) {
-      precacheImage(AssetImage(imagePath), context);
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Image.asset(imagePath, height: 180, fit: BoxFit.cover),
-      );
-    });
+  // Map structure images
+  String getStructureImage() {
+    switch (structure.toLowerCase()) {
+      case "small tank on rooftop":
+        return "assets/images/small.jpg";
+      case "medium-sized surface tank":
+        return "assets/images/medium.jpg";
+      case "large underground tank":
+        return "assets/images/large.jpg";
+      default:
+        return "assets/images/no_harvesting.png";
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    double annualDemand = dwellers * 135 * 365; // 135 L per day per dweller
+    double arVolume = (potentialLiters > annualDemand)
+        ? potentialLiters - annualDemand
+        : 0;
+    bool arNeeded = arVolume > 0;
+
     return Scaffold(
-      backgroundColor: bgColor,
       appBar: AppBar(
-        title: const Text(
-          "Report",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
+        title: const Text("Report", style: TextStyle(color: Colors.white)),
         backgroundColor: primaryColor,
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ----- Report Header -----
-            Container(
-              decoration: BoxDecoration(
-                // gradient: LinearGradient(
-                //   colors: [Color(0xFF257ca3), Color(0xFFa2d2df)],
-                //   begin: Alignment.topLeft,
-                //   end: Alignment.bottomRight,
-                // ),
-                color: Color(0xFF107dac),
+            // Recommended Structure
+            Card(
+              elevation: 6,
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.grey.shade400,
-                      blurRadius: 12,
-                      offset: const Offset(0, 6)),
-                ],
               ),
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Text("Rainwater Harvesting Assessment",
-                      style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white)),
-                  const SizedBox(height: 12),
-                  Text(
-                    "Detailed report of harvesting potential, recommended structures, and cost estimates",
-                    style: const TextStyle(
-                        fontSize: 16, color: Colors.white70, height: 1.4),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 25),
-
-            // ----- Rainfall & Harvesting Potential -----
-            _buildReportSection("Estimated Annual Rainfall",
-                "${rainfall.toStringAsFixed(2)} mm", Colors.blue),
-            const SizedBox(height: 12),
-            _buildReportSection("Estimated Harvesting Potential",
-                "${potentialLiters.toStringAsFixed(0)} liters/year", Colors.green),
-            const SizedBox(height: 12),
-            _buildReportSection(
-                "Estimated Cost", "₹${cost.toStringAsFixed(0)}", Colors.orange),
-            const SizedBox(height: 12),
-            _buildReportSection("Estimated Annual Savings",
-                "₹${savings.toStringAsFixed(2)}", Colors.purple),
-            const SizedBox(height: 25),
-
-            // ----- Recommended Structure -----
-            const Text(
-              "Recommended Structure",
-              style: TextStyle(
-                  fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.shade300,
-                    blurRadius: 10,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Text(
-                    structure,
-                    style: const TextStyle(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Text(
+                      "Recommended Structure",
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.teal),
-                  ),
-                  const SizedBox(height: 15),
-                  showStructureImage(structure),
-                ],
+                        color: Colors.grey[800],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Image.asset(
+                      getStructureImage(),
+                      height: 150,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      getStructureLabel(),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: primaryColor,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 16),
 
-            // ----- Buttons -----
+            // Calculation Summary
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    const Text(
+                      "Calculation Summary",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _infoRow("Roof Area:", "${roofArea.toStringAsFixed(1)} m²"),
+                    _infoRow(
+                      "Annual Rainfall:",
+                      "${annualRainfall.toStringAsFixed(1)} mm",
+                    ),
+                    _infoRow(
+                      "Potential Harvested Water:",
+                      "${potentialLiters.toStringAsFixed(1)} L",
+                    ),
+                    _infoRow(
+                      "Annual Water Demand:",
+                      "${annualDemand.toStringAsFixed(1)} L",
+                    ),
+                    _infoRow(
+                      "AR Needed:",
+                      arNeeded
+                          ? "Yes (${arVolume.toStringAsFixed(1)} L)"
+                          : "No",
+                    ),
+                    _infoRow("Estimated Cost:", "₹${cost.toStringAsFixed(0)}"),
+                    _infoRow(
+                      "Expected Savings:",
+                      "₹${savings.toStringAsFixed(0)}",
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Graphs: Annual Water & Money Savings (stacked vertically)
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Annual Savings",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Water Savings
+                    Row(
+                      children: [
+                        const Text(
+                          "Water:",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Stack(
+                            children: [
+                              Container(
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[300],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              FractionallySizedBox(
+                                widthFactor:
+                                    1, // 100% of the available width (can scale)
+                                child: Container(
+                                  height: 30,
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          "${potentialLiters.toStringAsFixed(1)} L",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // Money Savings
+                    Row(
+                      children: [
+                        const Text(
+                          "Money:",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Stack(
+                            children: [
+                              Container(
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[300],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              FractionallySizedBox(
+                                widthFactor:
+                                    1, // scale proportionally if needed
+                                child: Container(
+                                  height: 30,
+                                  decoration: BoxDecoration(
+                                    color: Colors.green,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          "₹${savings.toStringAsFixed(0)}",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Edit & Download Buttons
             Row(
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      // TODO: Implement download functionality
-                    },
-                    icon: const Icon(Icons.download, color: Colors.white),
-                    label:
-                        const Text("Download", style: TextStyle(color: Colors.white)),
+                    icon: const Icon(Icons.edit, color: textColor,),
+                    label: const Text("Edit",style: TextStyle(color: textColor, fontSize: 16),),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryColor,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
-                      shadowColor: Colors.grey.shade400,
-                      elevation: 5,
                     ),
+                    onPressed: () {
+                      Navigator.pop(context); // Go back to assessment page
+                    },
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    icon: const Icon(Icons.edit, color: Colors.white),
-                    label: const Text("Edit", style: TextStyle(color: Colors.white)),
+                    icon: const Icon(Icons.download,color: textColor,),
+                    label: const Text("Download",style:TextStyle(color: textColor, fontSize: 16)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF3c8baa),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
-                      shadowColor: Colors.grey.shade400,
-                      elevation: 5,
+                      backgroundColor: accentColor,
                     ),
+                    onPressed: () {
+                      // TODO: Implement download / PDF export
+                    },
                   ),
                 ),
               ],
             ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildReportSection(String title, String value, Color color) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.grey.shade300, blurRadius: 8, offset: const Offset(0, 4))
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+  Widget _infoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: const TextStyle(fontSize: 16)),
-          Text(value,
-              style: TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.bold, color: color)),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+          Text(
+            value,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: primaryColor,
+            ),
+          ),
         ],
       ),
     );
