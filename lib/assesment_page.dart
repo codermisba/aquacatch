@@ -174,12 +174,7 @@ Future<Map<String, dynamic>> _fetchRainfallData(String location, String pincode)
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bgColor,
-      appBar: AppBar(
-        title: const Text("Assessment", style: TextStyle(color: Colors.white)),
-        backgroundColor: primaryColor,
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
+      
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),

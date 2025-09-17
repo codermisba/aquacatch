@@ -3,7 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'splash_screen.dart';
 import 'login_page.dart';
 import 'signup_page.dart';
-import 'home_screen.dart';
+import 'main_navigation.dart'; // Changed from home_screen.dart to main_navigation.dart
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'generated/l10n.dart';
 import 'firebase_options.dart';
@@ -56,7 +56,7 @@ class _MyAppState extends State<MyApp> {
         '/': (context) => const SplashScreen(),
         '/login': (context) => const LoginPage(),
         '/signup': (context) => const SignUpPage(),
-        '/home': (context) => HomeScreen(),
+        '/home': (context) => const MainNavigation(), // Changed from HomeScreen() to MainNavigation()
       },
     );
   }
