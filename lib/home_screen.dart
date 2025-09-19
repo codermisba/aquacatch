@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:url_launcher/url_launcher.dart';
 import 'components.dart';
 import 'assesment_page.dart';
 
@@ -15,6 +15,12 @@ class _HomeScreenState extends State<HomeScreen> {
     "https://cdn1.byjus.com/wp-content/uploads/2023/05/Rainwater-harvesting-1.png",
     "https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/RWH-image.jpg/800px-RWH-image.jpg",
   ];
+  void _launchURL(String url) async {
+    final Uri uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      throw 'Could not launch $url';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,43 +81,74 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Expanded(
                 child: Container(
-                  margin: const EdgeInsets.all(8),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
+                  margin: const EdgeInsets.all(8), // margin moved here
+                  child: InkWell(
+                    onTap: () => _launchURL('https://cgwb.gov.in/'),
                     borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Column(
-                    children: [
-                      Icon(Icons.account_balance, size: 40, color: Colors.blue),
-                      SizedBox(height: 8),
-                      Text(
-                        "Central Ground Water Board (CGWB) manages India's groundwater scientifically and sustainably.",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 14, height: 1.4),
+                    child: Ink(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 5,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                    ],
+                      child: const Column(
+                        children: [
+                          Icon(
+                            Icons.account_balance,
+                            size: 40,
+                            color: Colors.blue,
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            "Central Ground Water Board (CGWB)",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 14, height: 1.4),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
               Expanded(
                 child: Container(
-                  margin: const EdgeInsets.all(8),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
+                  margin: const EdgeInsets.all(8), // margin moved here
+                  child: InkWell(
+                    onTap: () =>
+                        _launchURL('https://www.jalshakti-dowr.gov.in/'),
                     borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Column(
-                    children: [
-                      Icon(Icons.water_drop, size: 40, color: Colors.teal),
-                      SizedBox(height: 8),
-                      Text(
-                        "Ministry of Jal Shakti oversees water resources and promotes rainwater harvesting across India.",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 14, height: 1.4),
+                    child: Ink(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 5,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                    ],
+                      child: const Column(
+                        children: [
+                          Icon(Icons.water_drop, size: 40, color: Colors.teal),
+                          SizedBox(height: 8),
+                          Text(
+                            "Ministry of Jal Shakti.",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 14, height: 1.4),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -175,6 +212,7 @@ class _HomeScreenState extends State<HomeScreen> {
         'image': '/assets/images/small.jpg',
         'icon': Icons.water_drop,
         'color': Colors.blue,
+        'route': '/rainwater_harvesting',
       },
       {
         'title': 'Artificial Recharge',
@@ -183,6 +221,7 @@ class _HomeScreenState extends State<HomeScreen> {
         'image': '/assets/images/artificial_recharge.png',
         'icon': Icons.layers,
         'color': Colors.green,
+        'route': '/artifitial_recharge',
       },
       {
         'title': 'Rooftop Rain Water Harvesting',
@@ -191,15 +230,16 @@ class _HomeScreenState extends State<HomeScreen> {
         'image': '/assets/images/rtrwh.png',
         'icon': Icons.home,
         'color': Colors.orange,
+        'route': '/rooftop_rainwaterharvesting',
       },
       {
         'title': 'Why Fresh Water Matters',
         'description':
             'Fresh water plays a vital role in replenishing underground aquifers. It helps maintain soil permeability and ensures that groundwater remains a sustainable resource for communities and ecosystems.',
-        'image':
-            '/assets/images/fresh_water.png',
+        'image': '/assets/images/fresh_water.png',
         'icon': Icons.terrain,
         'color': Colors.brown,
+        'route': '/fresh_water',
       },
     ];
 
@@ -230,14 +270,17 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildLearningCard(BuildContext context, Map<String, dynamic> topic) {
     return GestureDetector(
       onTap: () {
-        Navigator.pushReplacementNamed(context, '/dashboard');
-        // Show a snackbar for now to indicate the tap
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Opening ${topic['title']}...'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        final String? routeName = topic['route'] as String?;
+        if (routeName != null && routeName.isNotEmpty) {
+          Navigator.pushNamed(context, routeName);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Opening ${topic['title']}...'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
       },
       child: Card(
         elevation: 6,

@@ -1,13 +1,16 @@
+import 'package:aquacatch/main_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'splash_screen.dart';
 import 'login_page.dart';
 import 'signup_page.dart';
-import 'main_navigation.dart'; // Changed from home_screen.dart to main_navigation.dart
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'generated/l10n.dart';
 import 'firebase_options.dart';
-
+import 'educational pages/rainwater_harvesting.dart';
+import 'educational pages/artificial_recharge.dart';
+import 'educational pages/rooftop_rainwaterharvesting.dart';
+import 'educational pages/fresh_water.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -57,6 +60,10 @@ class _MyAppState extends State<MyApp> {
         '/login': (context) => const LoginPage(),
         '/signup': (context) => const SignUpPage(),
         '/home': (context) => const MainNavigation(), // Changed from HomeScreen() to MainNavigation()
+        '/rainwater_harvesting': (context) => const RainwaterEducationPage(),
+        '/artifitial_recharge': (context) => const ArtificialRechargePage(),
+        '/rooftop_rainwaterharvesting': (context) => const RooftopRainwaterHarvestingPage(),
+        '/fresh_water': (context) => const WhyFreshWaterMattersPage(),
       },
     );
   }
