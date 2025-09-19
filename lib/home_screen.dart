@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'components.dart';
-import 'assesment_page.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -34,13 +33,6 @@ class _HomeScreenState extends State<HomeScreen> {
           _buildTopSection(context),
           const SizedBox(height: 25),
 
-          // Get Started Button
-          customButton("Get Started", () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const AssessmentPage()),
-            );
-          }),
           const SizedBox(height: 40),
 
           // Know More Section

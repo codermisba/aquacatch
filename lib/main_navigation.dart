@@ -92,7 +92,7 @@ class _MainNavigationState extends State<MainNavigation> {
       child: Scaffold(
         backgroundColor: bgColor,
         appBar: AppBar(
-          backgroundColor: primaryColor,
+          backgroundColor: const Color.fromRGBO(1, 86, 112, 1),
           title: Text(
             _getAppBarTitle(),
             style: const TextStyle(color: Colors.white, fontSize: 28),
