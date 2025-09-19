@@ -50,8 +50,7 @@ class _LoginPageState extends State<LoginPage>
     passwordController.dispose();
     super.dispose();
   }
-
-  Future<void> _forgotPassword() async {
+Future<void> _forgotPassword() async {
   if (emailController.text.trim().isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Please enter your email first")),
@@ -64,13 +63,15 @@ class _LoginPageState extends State<LoginPage>
       email: emailController.text.trim(),
     );
 
-   
+    debugPrint("✅ Password reset email sent to ${emailController.text.trim()}");
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text("Password reset link sent! Check your email."),
       ),
     );
   } on FirebaseAuthException catch (e) {
+    debugPrint("❌ Forgot password error: ${e.code}");
     String message = '';
     if (e.code == 'user-not-found') {
       message = 'No account found with this email';
@@ -85,6 +86,7 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 }
+
 
 
   Future<void> _login() async {
