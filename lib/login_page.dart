@@ -1,10 +1,10 @@
 // ignore_for_file: use_build_context_synchronously, deprecated_member_use
 
+import 'package:aquacatch/main_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'components.dart';
-import 'home_screen.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -130,7 +130,7 @@ Future<void> _forgotPassword() async {
       // Navigate to Home Page
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) =>  HomeScreen()),
+        MaterialPageRoute(builder: (_) =>  MainNavigation()),
       );
     } on FirebaseAuthException catch (e) {
       String message = '';
