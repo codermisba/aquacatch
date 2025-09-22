@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'components.dart';
-import 'assesment_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -11,10 +12,15 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  int reportCount = 0;
+  double waterSaved = 0.0;
+  final user = FirebaseAuth.instance.currentUser;
+
   final List<String> imageUrls = [
     "https://cdn1.byjus.com/wp-content/uploads/2023/05/Rainwater-harvesting-1.png",
     "https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/RWH-image.jpg/800px-RWH-image.jpg",
   ];
+
   void _launchURL(String url) async {
     final Uri uri = Uri.parse(url);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
@@ -23,152 +29,256 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+     // Call the async function like this:
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    _fetchCounts(); // ensures the widget is fully built before fetching
+  });
+  }
+
+ Future<void> _fetchCounts() async {
+  if (user == null) return;
+
+  try {
+    // Fetch reports
+    final reportSnapshot = await FirebaseFirestore.instance
+        .collection("results")
+        .where('userId', isEqualTo: user!.uid)
+        .get();
+
+    // Fetch assessments
+    // final assessmentSnapshot = await FirebaseFirestore.instance
+    //     .collection("assessments")
+    //     .where('userId', isEqualTo: user!.uid)
+    //     .get();
+
+    double latestWaterSaved = 0;
+    if (reportSnapshot.docs.isNotEmpty) {
+      final latestReport = reportSnapshot.docs.last.data();
+      latestWaterSaved = (latestReport['potentialLiters'] ?? 0).toInt();
+    }
+
+    setState(() {
+      reportCount = reportSnapshot.docs.length;
+      waterSaved = latestWaterSaved; // show water saved instead of past assessments
+    });
+
+    print("Reports: $reportCount, Water Saved: $latestWaterSaved");
+  } catch (e) {
+    print("Error fetching counts: $e");
+  }
+}
+
+  @override
   Widget build(BuildContext context) {
-    // Removed all Scaffold, AppBar, BottomNavigationBar, WillPopScope
-    // Now only contains the content
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          _buildTopSection(context),
-          const SizedBox(height: 25),
-
-          // Get Started Button
-          customButton("Get Started", () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const AssessmentPage()),
-            );
-          }),
-          const SizedBox(height: 40),
-
-          // Know More Section
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            child: const Text(
-              "Learn More About Rainwater Harvesting",
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: primaryColor,
-                letterSpacing: 1.2,
+    return Stack(
+      children: [ SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            _buildTopSection(context),
+            const SizedBox(height: 25),
+            const SizedBox(height: 40),
+      
+            // Know More Section
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              child: const Text(
+                "Learn More About Rainwater Harvesting",
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: primaryColor,
+                  letterSpacing: 1.2,
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
             ),
-          ),
-          const SizedBox(height: 25),
-
-          // Learning Cards Section
-          _buildLearningCards(context),
-          const SizedBox(height: 30),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            child: const Text(
-              "Important links",
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: primaryColor,
-                letterSpacing: 1.2,
+            const SizedBox(height: 25),
+            _buildLearningCards(context),
+            const SizedBox(height: 30),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              child: const Text(
+                "Important links",
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: primaryColor,
+                  letterSpacing: 1.2,
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
             ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Container(
-                  margin: const EdgeInsets.all(8), // margin moved here
-                  child: InkWell(
-                    onTap: () => _launchURL('https://cgwb.gov.in/'),
-                    borderRadius: BorderRadius.circular(16),
-                    child: Ink(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 5,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Column(
-                        children: [
-                          Icon(
-                            Icons.account_balance,
-                            size: 40,
-                            color: Colors.blue,
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            "Central Ground Water Board (CGWB)",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 14, height: 1.4),
-                          ),
-                        ],
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Container(
+                    margin: const EdgeInsets.all(8),
+                    child: InkWell(
+                      onTap: () => _launchURL('https://cgwb.gov.in/'),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Ink(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 5,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Column(
+                          children: [
+                            Icon(
+                              Icons.account_balance,
+                              size: 40,
+                              color: Colors.blue,
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              "Central Ground Water Board (CGWB)",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 14, height: 1.4),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              Expanded(
-                child: Container(
-                  margin: const EdgeInsets.all(8), // margin moved here
-                  child: InkWell(
-                    onTap: () =>
-                        _launchURL('https://www.jalshakti-dowr.gov.in/'),
-                    borderRadius: BorderRadius.circular(16),
-                    child: Ink(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 5,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Column(
-                        children: [
-                          Icon(Icons.water_drop, size: 40, color: Colors.teal),
-                          SizedBox(height: 8),
-                          Text(
-                            "Ministry of Jal Shakti.",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 14, height: 1.4),
-                          ),
-                        ],
+                Expanded(
+                  child: Container(
+                    margin: const EdgeInsets.all(8),
+                    child: InkWell(
+                      onTap: () => _launchURL('https://www.jalshakti-dowr.gov.in/'),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Ink(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 5,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Column(
+                          children: [
+                            Icon(Icons.water_drop, size: 40, color: Colors.teal),
+                            SizedBox(height: 8),
+                            Text(
+                              "Ministry of Jal Shakti.",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 14, height: 1.4),
+                            ),
+                          ],
+                        ),
+                        
                       ),
                     ),
                   ),
                 ),
+              ],
+            ),
+            
+          ],
+        ),
+        
+        
+      ),
+       Positioned(
+      bottom: 20,
+      right: 20,
+      child: _buildChatbotButton(),
+    ),
+      ],
+    );
+
+  }
+
+//chatbot button
+bool _showTooltip = true;
+
+Widget _buildChatbotButton() {
+  // Hide tooltip after 3 seconds
+  Future.delayed(const Duration(seconds: 3), () {
+    if (mounted && _showTooltip) {
+      setState(() {
+        _showTooltip = false;
+      });
+    }
+  });
+
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.end,
+    children: [
+      AnimatedOpacity(
+        opacity: _showTooltip ? 1.0 : 0.0,
+        duration: const Duration(milliseconds: 500),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          margin: const EdgeInsets.only(bottom: 8),
+          decoration: BoxDecoration(
+            color: accentColor,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 4,
+                offset: const Offset(2, 2),
               ),
             ],
           ),
-        ],
+          child: const Text(
+            "Hello I am AquaBot, Have a question? Ask me!",
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
       ),
-    );
-  }
+      FloatingActionButton(
+        backgroundColor: primaryColor,
+        child: const Icon(Icons.chat, color: Colors.white,),
+        onPressed: () {
+          Navigator.pushNamed(context, '/chat'); // Your chat page route
+        },
+      ),
+    ],
+  );
+}
 
   // ---------------- Top Section ----------------
   Widget _buildTopSection(BuildContext context) {
     return Column(
       children: [
-        // Quick Stats Row
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _buildStatBox("Past Assessments", "12", Icons.history, Colors.blue),
-            _buildStatBox("Reports", "5", Icons.description, Colors.green),
+            _buildStatBox(
+              "Water Saved (L)",
+              "${waterSaved.toStringAsFixed(1)}",
+              Icons.water_drop,
+              Colors.blue,
+            ),
+            _buildStatBox(
+              "Reports",
+              "$reportCount",
+              Icons.description,
+              Colors.green,
+            ),
           ],
         ),
       ],
@@ -245,7 +355,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Column(
       children: [
-        // First row - 2 cards
         Row(
           children: [
             Expanded(child: _buildLearningCard(context, learningTopics[0])),
@@ -254,7 +363,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         const SizedBox(height: 12),
-        // Second row - 2 cards
         Row(
           children: [
             Expanded(child: _buildLearningCard(context, learningTopics[2])),
@@ -301,7 +409,6 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Image section
               Container(
                 height: 100,
                 width: double.infinity,
@@ -339,7 +446,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-              // Content section
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.all(12.0),
@@ -369,7 +475,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      // Learn more indicator
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [

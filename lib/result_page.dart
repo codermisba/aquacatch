@@ -1,5 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:pdf/pdf.dart';
 import 'components.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:flutter/services.dart' show rootBundle;
 
 class ResultPage extends StatelessWidget {
   final double annualRainfall;
@@ -9,8 +18,11 @@ class ResultPage extends StatelessWidget {
   final double savings;
   final int dwellers;
   final double roofArea;
+  final double groundwaterLevel;
+  final String aquiferType;
+  final String city; // optional, can be passed for AI report
 
-  const ResultPage({
+  ResultPage({
     super.key,
     required this.annualRainfall,
     required this.potentialLiters,
@@ -19,9 +31,157 @@ class ResultPage extends StatelessWidget {
     required this.savings,
     required this.dwellers,
     required this.roofArea,
+    required this.groundwaterLevel,
+    required this.aquiferType,
+    this.city = "Unknown City",
   });
 
-  // Map structure labels
+  final String? hfToken = dotenv.env['HF_TOKEN'];
+  final String hfModel = "deepseek-ai/DeepSeek-V3-0324";
+
+  // ---------------- Hugging Face call ----------------
+  Future<String> getBotResponseHF(String prompt) async {
+    final url = Uri.parse("https://router.huggingface.co/v1/chat/completions");
+    final payload = {
+      "model": hfModel,
+      "messages": [
+        {"role": "user", "content": prompt}
+      ],
+      "parameters": {"temperature": 0.7, "max_new_tokens": 500}
+    };
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          "Authorization": "Bearer $hfToken",
+          "Content-Type": "application/json"
+        },
+        body: jsonEncode(payload),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data["choices"] != null && data["choices"].isNotEmpty) {
+          return data["choices"][0]["message"]["content"] ?? "No response.";
+        }
+      } else {
+        debugPrint("HF API Error: ${response.statusCode} - ${response.body}");
+      }
+      return "Could not generate detailed report.";
+    } catch (e) {
+      return "Error: $e";
+    }
+  }
+
+  // ---------------- Save to Firestore ----------------
+  Future<void> saveResultToFirebase() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
+  // Generate detailed report from AI
+  String detailedReport = await generateDetailedReport();
+  debugPrint(detailedReport);
+
+  final resultData = {
+    "annualRainfall": annualRainfall,
+    "potentialLiters": potentialLiters,
+    "structure": structure,
+    "cost": cost,
+    "savings": savings,
+    "dwellers": dwellers,
+    "roofArea": roofArea,
+    "groundwaterLevel": groundwaterLevel,
+    "aquiferType": aquiferType,
+    "city": city,
+    "detailedReport": detailedReport, // <-- store AI report
+    "timestamp": FieldValue.serverTimestamp(),
+    "userId": user.uid,
+  };
+
+  await FirebaseFirestore.instance.collection("results").add(resultData);
+}
+
+
+  // ---------------- Generate detailed AI report ----------------
+  Future<String> generateDetailedReport() async {
+    String prompt = """
+You are AquaBot, a water harvesting expert. Generate a detailed water harvesting report for a household with these details:
+
+- Annual Rainfall: ${annualRainfall} mm
+- Potential Water Harvested: ${potentialLiters} L
+- Structure: ${structure}
+- Estimated Cost: ₹${cost}
+- Expected Savings: ₹${savings}
+- Number of Dwellers: ${dwellers}
+- Roof Area: ${roofArea} m²
+- Groundwater Level: ${groundwaterLevel} m
+- Aquifer Type: ${aquiferType}
+- City: ${city}
+
+Include:
+- Detailed cost estimation (pipe type, material, labor)
+- Water saved
+- Average groundwater level and soil type
+- Environmental impact
+- Structure recommendation
+
+Keep text clear and professional without extra symbols or hashtags.
+""";
+
+    return await getBotResponseHF(prompt);
+  }
+
+  // ---------------- Generate PDF ----------------
+  Future<void> generatePdf() async {
+    final pdf = pw.Document();
+
+    final detailedReport = await generateDetailedReport();
+
+    // Load image bytes
+    final imageBytes = (await rootBundle.load(getStructureImage()))
+        .buffer
+        .asUint8List();
+
+    pdf.addPage(
+      pw.Page(
+        build: (context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text('Water Harvesting Report',
+                  style: pw.TextStyle(
+                      fontSize: 24, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 16),
+              pw.Text('Structure: ${getStructureLabel()}'),
+              pw.Text('Roof Area: ${roofArea.toStringAsFixed(1)} m²'),
+              pw.Text('Annual Rainfall: ${annualRainfall.toStringAsFixed(1)} mm'),
+              pw.Text(
+                  'Potential Harvested Water: ${potentialLiters.toStringAsFixed(1)} L'),
+              pw.Text('Annual Water Demand: ${(dwellers * 135 * 365).toStringAsFixed(1)} L'),
+              pw.Text('Estimated Cost: ₹${cost.toStringAsFixed(0)}'),
+              pw.Text('Expected Savings: ₹${savings.toStringAsFixed(0)}'),
+              pw.Text('Aquifer Type: $aquiferType'),
+              pw.Text('Groundwater Level: ${groundwaterLevel.toStringAsFixed(1)} m'),
+              pw.SizedBox(height: 16),
+              pw.Image(pw.MemoryImage(imageBytes), height: 150),
+              pw.SizedBox(height: 16),
+              pw.Text('Detailed Analysis:',
+                  style:
+                      pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 8),
+              pw.Text(detailedReport),
+            ],
+          );
+        },
+      ),
+    );
+
+    await Printing.layoutPdf(
+        onLayout: (PdfPageFormat format) async => pdf.save());
+  }
+
+  // ---------------- Utility Methods ----------------
   String getStructureLabel() {
     switch (structure.toLowerCase()) {
       case "small tank on rooftop":
@@ -35,7 +195,6 @@ class ResultPage extends StatelessWidget {
     }
   }
 
-  // Map structure images
   String getStructureImage() {
     switch (structure.toLowerCase()) {
       case "small tank on rooftop":
@@ -51,10 +210,8 @@ class ResultPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    double annualDemand = dwellers * 135 * 365; // 135 L per day per dweller
-    double arVolume = (potentialLiters > annualDemand)
-        ? potentialLiters - annualDemand
-        : 0;
+    double annualDemand = dwellers * 135 * 365;
+    double arVolume = (potentialLiters > annualDemand) ? potentialLiters - annualDemand : 0;
     bool arNeeded = arVolume > 0;
 
     return Scaffold(
@@ -69,7 +226,7 @@ class ResultPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Recommended Structure
+            // Recommended Structure Card
             Card(
               elevation: 6,
               shape: RoundedRectangleBorder(
@@ -108,7 +265,7 @@ class ResultPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Calculation Summary
+            // Calculation Summary Card
             Card(
               elevation: 4,
               shape: RoundedRectangleBorder(
@@ -128,170 +285,70 @@ class ResultPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     _infoRow("Roof Area:", "${roofArea.toStringAsFixed(1)} m²"),
-                    _infoRow(
-                      "Annual Rainfall:",
-                      "${annualRainfall.toStringAsFixed(1)} mm",
-                    ),
-                    _infoRow(
-                      "Potential Harvested Water:",
-                      "${potentialLiters.toStringAsFixed(1)} L",
-                    ),
-                    _infoRow(
-                      "Annual Water Demand:",
-                      "${annualDemand.toStringAsFixed(1)} L",
-                    ),
-                    _infoRow(
-                      "AR Needed:",
-                      arNeeded
-                          ? "Yes (${arVolume.toStringAsFixed(1)} L)"
-                          : "No",
-                    ),
+                    _infoRow("Annual Rainfall:", "${annualRainfall.toStringAsFixed(1)} mm"),
+                    _infoRow("Potential Harvested Water:", "${potentialLiters.toStringAsFixed(1)} L"),
+                    _infoRow("Annual Water Demand:", "${annualDemand.toStringAsFixed(1)} L"),
+                    _infoRow("AR Needed:", arNeeded ? "Yes (${arVolume.toStringAsFixed(1)} L)" : "No"),
                     _infoRow("Estimated Cost:", "₹${cost.toStringAsFixed(0)}"),
-                    _infoRow(
-                      "Expected Savings:",
-                      "₹${savings.toStringAsFixed(0)}",
-                    ),
+                    _infoRow("Expected Savings:", "₹${savings.toStringAsFixed(0)}"),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-            // Graphs: Annual Water & Money Savings (stacked vertically)
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Annual Savings",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Water Savings
-                    Row(
-                      children: [
-                        const Text(
-                          "Water:",
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Stack(
-                            children: [
-                              Container(
-                                height: 30,
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[300],
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              FractionallySizedBox(
-                                widthFactor:
-                                    1, // 100% of the available width (can scale)
-                                child: Container(
-                                  height: 30,
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          "${potentialLiters.toStringAsFixed(1)} L",
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    // Money Savings
-                    Row(
-                      children: [
-                        const Text(
-                          "Money:",
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Stack(
-                            children: [
-                              Container(
-                                height: 30,
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[300],
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              FractionallySizedBox(
-                                widthFactor:
-                                    1, // scale proportionally if needed
-                                child: Container(
-                                  height: 30,
-                                  decoration: BoxDecoration(
-                                    color: Colors.green,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          "₹${savings.toStringAsFixed(0)}",
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
             const SizedBox(height: 20),
 
-            // Edit & Download Buttons
+            // Buttons
             Row(
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    icon: const Icon(Icons.edit, color: textColor,),
-                    label: const Text("Edit",style: TextStyle(color: textColor, fontSize: 16),),
+                    icon: const Icon(Icons.edit, color: textColor),
+                    label: const Text(
+                      "Edit",
+                      style: TextStyle(color: textColor, fontSize: 16),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryColor,
                     ),
-                    onPressed: () {
-                      Navigator.pop(context); // Go back to assessment page
-                    },
+                    onPressed: () => Navigator.pop(context),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton.icon(
-                    icon: const Icon(Icons.download,color: textColor,),
-                    label: const Text("Download",style:TextStyle(color: textColor, fontSize: 16)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: accentColor,
+                    style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
+                    icon: const Icon(Icons.download, color: textColor),
+                    label: const Text(
+                      "Save PDF",
+                      style: TextStyle(color: textColor, fontSize: 16),
                     ),
-                    onPressed: () {
-                      // TODO: Implement download / PDF export
+                    onPressed: () async {
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (context) =>
+                            const Center(child: CircularProgressIndicator(color: primaryColor)),
+                      );
+
+                      try {
+                        await saveResultToFirebase();
+                        await generatePdf();
+                        Navigator.of(context).pop();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("PDF generated & saved successfully!"),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      } catch (e) {
+                        Navigator.of(context).pop();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("Error: $e"),
+                            duration: const Duration(seconds: 3),
+                          ),
+                        );
+                      }
                     },
                   ),
                 ),

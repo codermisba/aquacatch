@@ -1,8 +1,8 @@
 // Create this as lib/main_navigation.dart
+import 'package:aquacatch/reports_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:aquacatch/main.dart';
-
 import 'components.dart';
 import 'home_screen.dart';
 import 'assesment_page.dart';
@@ -92,7 +92,7 @@ class _MainNavigationState extends State<MainNavigation> {
       child: Scaffold(
         backgroundColor: bgColor,
         appBar: AppBar(
-          backgroundColor: primaryColor,
+          backgroundColor: const Color.fromRGBO(1, 86, 112, 1),
           title: Text(
             _getAppBarTitle(),
             style: const TextStyle(color: Colors.white, fontSize: 28),
@@ -238,93 +238,5 @@ class _TutorialsPageState extends State<TutorialsPage> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-}
-
-// Reports Page
-class ReportsPage extends StatefulWidget {
-  const ReportsPage({super.key});
-
-  @override
-  State<ReportsPage> createState() => _ReportsPageState();
-}
-
-class _ReportsPageState extends State<ReportsPage> {
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Reports Header
-          Card(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            elevation: 3,
-            child: const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  Icon(Icons.description, size: 40, color: primaryColor),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Your Assessment Reports',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          'View and download your water conservation reports',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Placeholder content
-          const Expanded(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.description_outlined,
-                    size: 80,
-                    color: Colors.grey,
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'No Reports Yet',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Complete an assessment to\ngenerate your first report!',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

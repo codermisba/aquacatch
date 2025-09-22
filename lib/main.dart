@@ -1,3 +1,4 @@
+import 'package:aquacatch/chat.dart';
 import 'package:aquacatch/main_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -11,11 +12,13 @@ import 'educational pages/rainwater_harvesting.dart';
 import 'educational pages/artificial_recharge.dart';
 import 'educational pages/rooftop_rainwaterharvesting.dart';
 import 'educational pages/fresh_water.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  await dotenv.load(fileName: ".env");
   runApp(const MyApp());
 }
 
@@ -64,6 +67,7 @@ class _MyAppState extends State<MyApp> {
         '/artifitial_recharge': (context) => const ArtificialRechargePage(),
         '/rooftop_rainwaterharvesting': (context) => const RooftopRainwaterHarvestingPage(),
         '/fresh_water': (context) => const WhyFreshWaterMattersPage(),
+        '/chat': (context) => const ChatPage(), // <-- Register your chat screen
       },
     );
   }
