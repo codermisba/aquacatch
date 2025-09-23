@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -136,29 +138,44 @@ class _ReportsPageState extends State<ReportsPage> {
     );
   }
 
-  Future<void> _generatePdf(QueryDocumentSnapshot report) async {
-    final pdf = pw.Document();
-    pdf.addPage(
-      pw.Page(
-        build: (context) => pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text('Water Harvesting Report', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
-            pw.SizedBox(height: 16),
-            pw.Text('Structure: ${report['structure']}'),
-            pw.Text('Roof Area: ${report['roofArea']} m²'),
-            pw.Text('Annual Rainfall: ${report['annualRainfall']} mm'),
-            pw.Text('Potential Harvested Water: ${report['potentialLiters']} L'),
-            pw.Text('Annual Water Demand: ${(report['dwellers'] * 135 * 365).toString()} L'),
-            pw.Text('Estimated Cost: ₹${report['cost']}'),
-            pw.Text('Expected Savings: ₹${report['savings']}'),
-            pw.Text('Aquifer Type: ${report['aquiferType']}'),
-            pw.Text('Groundwater Level: ${report['groundwaterLevel']} m'),
-          ],
-        ),
-      ),
-    );
+ 
+Future<void> _generatePdf(QueryDocumentSnapshot report) async {
+  final pdf = pw.Document();
 
-    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
-  }
+  final detailedReport = report['detailedReport'] ?? "No detailed report available.";
+
+  pdf.addPage(
+    pw.Page(
+      build: (context) => pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text('Water Harvesting Report',
+              style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 16),
+          pw.Text('Structure: ${report['structure']}'),
+          pw.Text('Roof Area: ${report['roofArea']} m²'),
+          pw.Text('Annual Rainfall: ${report['annualRainfall']} mm'),
+          pw.Text('Potential Harvested Water: ${report['potentialLiters']} L'),
+          pw.Text('Annual Water Demand: ${(report['dwellers'] * 135 * 365).toString()} L'),
+          pw.Text('Estimated Cost: ₹${report['cost']}'),
+          pw.Text('Expected Savings: ₹${report['savings']}'),
+          pw.Text('Aquifer Type: ${report['aquiferType']}'),
+          pw.Text('Location: ${report['location'] ?? 'Not specified'}'),
+          pw.Text('Groundwater Level: ${report['groundwaterLevel']} m'),
+          pw.SizedBox(height: 16),
+          pw.Text('Detailed AI Report',
+              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 8),
+          pw.Text(detailedReport, style: const pw.TextStyle(fontSize: 12)),
+        ],
+      ),
+    ),
+  );
+
+  // Save PDF as bytes
+  final Uint8List bytes = await pdf.save();
+
+  // ✅ For web: triggers print/save dialog
+  await Printing.sharePdf(bytes: bytes, filename: 'Water_Harvesting_Report.pdf');
+}
 }

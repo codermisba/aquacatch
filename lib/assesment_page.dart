@@ -20,21 +20,28 @@ class _AssessmentPageState extends State<AssessmentPage> {
   String? selectedAssessment; // null → no selection yet
 
   // Common Controllers
-  final TextEditingController _locationController =
-      TextEditingController(text: "Solapur");
-  final TextEditingController _roofAreaController =
-      TextEditingController(text: "120"); // sqft
-  final TextEditingController _openSpaceController =
-      TextEditingController(text: "80"); // sqft
-  final TextEditingController _dwellersController =
-      TextEditingController(text: "5");
+  final TextEditingController _locationController = TextEditingController(
+    text: "Solapur",
+  );
+  final TextEditingController _roofAreaController = TextEditingController(
+    text: "120",
+  ); // sqft
+  final TextEditingController _openSpaceController = TextEditingController(
+    text: "80",
+  ); // sqft
+  final TextEditingController _dwellersController = TextEditingController(
+    text: "5",
+  );
 
   // AR-specific controllers
-  final TextEditingController _wellDepthController =
-      TextEditingController(text: "10"); // meters
-  final TextEditingController _wellDiameterController =
-      TextEditingController(text: "1"); // meters
+  final TextEditingController _wellDepthController = TextEditingController(
+    text: "10",
+  ); // meters
+  final TextEditingController _wellDiameterController = TextEditingController(
+    text: "1",
+  ); // meters
   String _soilType = "Sandy";
+  String _city = "Solapur"; // default
 
   String _roofType = "concrete";
   File? _roofImage;
@@ -76,20 +83,24 @@ class _AssessmentPageState extends State<AssessmentPage> {
       }
 
       Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
+        desiredAccuracy: LocationAccuracy.high,
+      );
 
-      List<Placemark> placemarks =
-          await placemarkFromCoordinates(position.latitude, position.longitude);
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
 
       if (placemarks.isNotEmpty) {
         Placemark place = placemarks.first;
         String address = [
           place.locality ?? '',
           place.subAdministrativeArea ?? '',
-          place.administrativeArea ?? ''
+          place.administrativeArea ?? '',
         ].where((e) => e.isNotEmpty).join(", ");
 
         setState(() {
+          _city = place.locality ?? _city;
           _locationController.text = address.isNotEmpty
               ? address
               : "${position.latitude}, ${position.longitude}";
@@ -102,10 +113,29 @@ class _AssessmentPageState extends State<AssessmentPage> {
       }
     } catch (e) {
       debugPrint("Location error: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to get location: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to get location: $e')));
     }
+  }
+
+  Future<double> fetchGroundwaterLevel(String district) async {
+    try {
+      final url = Uri.parse(
+        "https://sheetdb.io/api/v1/x7eb8wzkxon0e?district_lower=${district.toLowerCase()}",
+      );
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data.isNotEmpty) {
+          return double.tryParse(data[0]["groundwaterlevel"].toString()) ??
+              15.0;
+        }
+      }
+    } catch (e) {
+      debugPrint("Groundwater fetch error: $e");
+    }
+    return 15.0; // fallback
   }
 
   /// 🚀 Generate Report
@@ -118,13 +148,15 @@ class _AssessmentPageState extends State<AssessmentPage> {
     double roofAreaSqft = double.tryParse(_roofAreaController.text) ?? 0;
     double roofAreaM2 = roofAreaSqft * 0.092903;
 
-    final aquiferData = await fetchAquiferData(location);
-
     Map<String, dynamic> rainfallData = await _fetchRainfallData(location);
     double annualRainfall = rainfallData['annual'];
 
-    double groundwaterLevel = 15.0;
-    String aquiferType = "Unconfined Aquifer";
+    double groundwaterLevel = await fetchGroundwaterLevel(location);
+    final aquiferData = await fetchAquiferData(location);
+    String aquiferType = "Unconfined Aquifer"; // default
+    if (aquiferData != null && aquiferData["aquifer"] != null) {
+      aquiferType = aquiferData["aquifer"];
+    }
 
     Map<String, double> coefficients = {
       "concrete": 0.85,
@@ -134,14 +166,12 @@ class _AssessmentPageState extends State<AssessmentPage> {
     double coeff = _roofType != null ? coefficients[_roofType] ?? 0.85 : 0.85;
 
     double annualDemand = dwellers * 135 * 365;
-    double potentialLiters =
-        (annualRainfall / 1000) * roofAreaM2 * coeff * 1000;
+    double potentialLiters = (annualRainfall / 1000) * roofAreaM2 * coeff * 1000;
 
     String structure;
     if (selectedAssessment == "AR") {
       double wellDepth = double.tryParse(_wellDepthController.text) ?? 10;
-      double wellDiameter =
-          double.tryParse(_wellDiameterController.text) ?? 1;
+      double wellDiameter = double.tryParse(_wellDiameterController.text) ?? 1;
       structure = "AR Well: $wellDepth m depth, $wellDiameter m diameter";
     } else {
       if (potentialLiters < 0.5 * annualDemand) {
@@ -179,6 +209,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
           roofArea: roofAreaSqft,
           groundwaterLevel: groundwaterLevel,
           aquiferType: aquiferType,
+          city: location,
         ),
       ),
     );
@@ -187,10 +218,13 @@ class _AssessmentPageState extends State<AssessmentPage> {
   Future<Map<String, dynamic>> _fetchRainfallData(String location) async {
     try {
       final geoUrl = Uri.parse(
-          "https://nominatim.openstreetmap.org/search?city=$location&country=India&format=json&limit=1");
+        "https://nominatim.openstreetmap.org/search?city=$location&country=India&format=json&limit=1",
+      );
 
-      final geoResp = await http.get(geoUrl,
-          headers: {"User-Agent": "RainHarvestApp/1.0 (contact@email.com)"});
+      final geoResp = await http.get(
+        geoUrl,
+        headers: {"User-Agent": "RainHarvestApp/1.0 (contact@email.com)"},
+      );
 
       if (geoResp.statusCode != 200) return {'annual': 1000.0};
 
@@ -209,7 +243,8 @@ class _AssessmentPageState extends State<AssessmentPage> {
           "${today.year}${today.month.toString().padLeft(2, '0')}${today.day.toString().padLeft(2, '0')}";
 
       final nasaUrl = Uri.parse(
-          "https://power.larc.nasa.gov/api/temporal/daily/point?parameters=PRECTOTCORR&community=AG&longitude=$lon&latitude=$lat&start=$start&end=$end&format=JSON");
+        "https://power.larc.nasa.gov/api/temporal/daily/point?parameters=PRECTOTCORR&community=AG&longitude=$lon&latitude=$lat&start=$start&end=$end&format=JSON",
+      );
 
       final nasaResp = await http.get(nasaUrl);
       if (nasaResp.statusCode != 200) return {'annual': 1000.0};
@@ -227,7 +262,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
 
       return {'annual': annualRainfall};
     } catch (e) {
-      debugPrint("Rainfall error: $e");  
+      debugPrint("Rainfall error: $e");
       return {'annual': 1000.0};
     }
   }
@@ -272,53 +307,62 @@ class _AssessmentPageState extends State<AssessmentPage> {
 
             // Assessment Selection Buttons (always visible)
             Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        selectedAssessment = "Rooftop";
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: selectedAssessment == "Rooftop"
-                          ? primaryColor
-                          : Colors.grey.shade200,
-                      foregroundColor: selectedAssessment == "Rooftop"
-                          ? Colors.white
-                          : Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text("Rooftop Rainwater Harvesting"),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        selectedAssessment = "AR";
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: selectedAssessment == "AR"
-                          ? accentColor
-                          : Colors.grey.shade200,
-                      foregroundColor:
-                          selectedAssessment == "AR" ? Colors.white : Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text("Artificial Recharge (AR)"),
-                  ),
-                ),
-              ],
-            ),
+  children: [
+    Expanded(
+      child: ElevatedButton(
+        onPressed: () {
+          setState(() {
+            selectedAssessment = "Rooftop";
+          });
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: selectedAssessment == "Rooftop"
+              ? primaryColor
+              : Colors.grey.shade200,
+          foregroundColor: selectedAssessment == "Rooftop"
+              ? Colors.white
+              : Colors.black,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: const Text(
+          "Rooftop\nRainwater Harvesting",
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        ),
+      ),
+    ),
+    const SizedBox(width: 12),
+    Expanded(
+      child: ElevatedButton(
+        onPressed: () {
+          setState(() {
+            selectedAssessment = "AR";
+          });
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: selectedAssessment == "AR"
+              ? accentColor
+              : Colors.grey.shade200,
+          foregroundColor: selectedAssessment == "AR"
+              ? Colors.white
+              : Colors.black,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: const Text(
+          "Artificial\nRecharge (AR)",
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        ),
+      ),
+    ),
+  ],
+),
 
             const SizedBox(height: 20),
 
@@ -337,14 +381,18 @@ class _AssessmentPageState extends State<AssessmentPage> {
               Center(
                 child: Card(
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20)),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                   elevation: 8,
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),
                     child: Column(
                       children: [
-                        const Icon(Icons.assessment_outlined,
-                            size: 80, color: primaryColor),
+                        const Icon(
+                          Icons.assessment_outlined,
+                          size: 80,
+                          color: primaryColor,
+                        ),
                         const SizedBox(height: 10),
                         Text(
                           selectedAssessment == "Rooftop"
@@ -352,38 +400,50 @@ class _AssessmentPageState extends State<AssessmentPage> {
                               : "Artificial Recharge Assessment",
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: primaryColor),
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: primaryColor,
+                          ),
                         ),
                         const SizedBox(height: 20),
 
                         // Location Section
                         Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text("Location Details",
-                                style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.grey[800]))),
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            "Location Details",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[800],
+                            ),
+                          ),
+                        ),
                         const Divider(),
                         customTextField(
-                            controller: _locationController,
-                            hint: "Location",
-                            icon: Icons.location_city),
+                          controller: _locationController,
+                          hint: "Location",
+                          icon: Icons.location_city,
+                        ),
                         const SizedBox(height: 8),
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
-                            icon:
-                                const Icon(Icons.my_location, color: Colors.white),
-                            label: const Text("Get My Location",
-                                style: TextStyle(color: Colors.white)),
+                            icon: const Icon(
+                              Icons.my_location,
+                              color: Colors.white,
+                            ),
+                            label: const Text(
+                              "Get My Location",
+                              style: TextStyle(color: Colors.white),
+                            ),
                             style: ElevatedButton.styleFrom(
-                                backgroundColor: primaryColor,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12))),
+                              backgroundColor: primaryColor,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
                             onPressed: _getCurrentLocation,
                           ),
                         ),
@@ -394,21 +454,26 @@ class _AssessmentPageState extends State<AssessmentPage> {
                         if (selectedAssessment == "Rooftop") ...[
                           // Rooftop Fields
                           customTextField(
-                              controller: _roofAreaController,
-                              hint: "Rooftop Area (sqft)",
-                              icon: Icons.roofing),
+                            controller: _roofAreaController,
+                            hint: "Rooftop Area (sqft)",
+                            icon: Icons.roofing,
+                          ),
                           customTextField(
-                              controller: _openSpaceController,
-                              hint: "Open Space Area (sqft)",
-                              icon: Icons.landscape),
+                            controller: _openSpaceController,
+                            hint: "Open Space Area (sqft)",
+                            icon: Icons.landscape,
+                          ),
                           const SizedBox(height: 8),
                           DropdownButtonFormField<String>(
                             value: _roofType,
-                            items: ["concrete", "gi_sheet", "asbestos"]
-                                .map((type) {
+                            items: ["concrete", "gi_sheet", "asbestos"].map((
+                              type,
+                            ) {
                               return DropdownMenuItem(
                                 value: type,
-                                child: Text(type[0].toUpperCase() + type.substring(1)),
+                                child: Text(
+                                  type[0].toUpperCase() + type.substring(1),
+                                ),
                               );
                             }).toList(),
                             onChanged: (val) {
@@ -420,45 +485,61 @@ class _AssessmentPageState extends State<AssessmentPage> {
                               labelText: "Roof Type",
                               prefixIcon: const Icon(Icons.roofing),
                               border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12)),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                           ),
                           const SizedBox(height: 8),
                           customTextField(
-                              controller: _dwellersController,
-                              hint: "Number of Dwellers",
-                              icon: Icons.people),
+                            controller: _dwellersController,
+                            hint: "Number of Dwellers",
+                            icon: Icons.people,
+                          ),
                           const SizedBox(height: 12),
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton.icon(
-                              icon: const Icon(Icons.upload, color: Colors.white),
-                              label: const Text("Upload Roof Photo (optional)",
-                                  style: TextStyle(color: Colors.white)),
+                              icon: const Icon(
+                                Icons.upload,
+                                color: Colors.white,
+                              ),
+                              label: const Text(
+                                "Upload Roof Photo (optional)",
+                                style: TextStyle(color: Colors.white),
+                              ),
                               style: ElevatedButton.styleFrom(
-                                  backgroundColor: accentColor,
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12))),
+                                backgroundColor: accentColor,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
                               onPressed: _pickImage,
                             ),
                           ),
                           if (_roofImage != null)
                             Padding(
                               padding: const EdgeInsets.symmetric(vertical: 8),
-                              child: Image.file(_roofImage!,
-                                  height: 120, fit: BoxFit.cover),
+                              child: Image.file(
+                                _roofImage!,
+                                height: 120,
+                                fit: BoxFit.cover,
+                              ),
                             ),
                         ] else ...[
                           // AR Fields
                           customTextField(
-                              controller: _wellDepthController,
-                              hint: "Well Depth (m)",
-                              icon: Icons.height),
+                            controller: _wellDepthController,
+                            hint: "Well Depth (m)",
+                            icon: Icons.height,
+                          ),
                           customTextField(
-                              controller: _wellDiameterController,
-                              hint: "Well Diameter (m)",
-                              icon: Icons.circle),
+                            controller: _wellDiameterController,
+                            hint: "Well Diameter (m)",
+                            icon: Icons.circle,
+                          ),
                           const SizedBox(height: 8),
                           DropdownButtonFormField<String>(
                             value: _soilType,
@@ -477,7 +558,8 @@ class _AssessmentPageState extends State<AssessmentPage> {
                               labelText: "Soil Type",
                               prefixIcon: const Icon(Icons.landscape),
                               border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12)),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                           ),
                         ],
@@ -485,20 +567,29 @@ class _AssessmentPageState extends State<AssessmentPage> {
                         const SizedBox(height: 24),
 
                         _isLoading
-                            ? const CircularProgressIndicator(color: primaryColor)
+                            ? const CircularProgressIndicator(
+                                color: primaryColor,
+                              )
                             : SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton.icon(
-                                  icon: const Icon(Icons.file_present,
-                                      color: Colors.white),
-                                  label: const Text("Generate Report",
-                                      style: TextStyle(color: Colors.white)),
+                                  icon: const Icon(
+                                    Icons.file_present,
+                                    color: Colors.white,
+                                  ),
+                                  label: const Text(
+                                    "Generate Report",
+                                    style: TextStyle(color: Colors.white),
+                                  ),
                                   style: ElevatedButton.styleFrom(
-                                      backgroundColor: primaryColor,
-                                      padding: const EdgeInsets.symmetric(vertical: 16),
-                                      shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(12))),
+                                    backgroundColor: primaryColor,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
                                   onPressed: _navigateToResult,
                                 ),
                               ),
