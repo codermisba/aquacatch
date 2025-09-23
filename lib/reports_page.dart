@@ -8,7 +8,6 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'result_page.dart';
-import 'components.dart';
 
 class ReportsPage extends StatefulWidget {
   const ReportsPage({super.key});
@@ -33,11 +32,11 @@ class _ReportsPageState extends State<ReportsPage> {
           Card(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             elevation: 3,
-            child: const Padding(
+            child: Padding(
               padding: EdgeInsets.all(16.0),
               child: Row(
                 children: [
-                  Icon(Icons.description, size: 40, color: primaryColor),
+                  Icon(Icons.description, size: 40, color: Theme.of(context).primaryColor),
                   SizedBox(width: 12),
                   Expanded(
                     child: Column(

@@ -13,11 +13,11 @@ import 'educational pages/artificial_recharge.dart';
 import 'educational pages/rooftop_rainwaterharvesting.dart';
 import 'educational pages/fresh_water.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'theme.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await dotenv.load(fileName: ".env");
   runApp(const MyApp());
 }
@@ -26,9 +26,13 @@ class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
   static void setLocale(BuildContext context, Locale newLocale) {
-    _MyAppState? state =
-        context.findAncestorStateOfType<_MyAppState>();
+    _MyAppState? state = context.findAncestorStateOfType<_MyAppState>();
     state?.setLocale(newLocale);
+  }
+
+  static void toggleTheme(BuildContext context) {
+    _MyAppState? state = context.findAncestorStateOfType<_MyAppState>();
+    state?.toggleTheme();
   }
 
   @override
@@ -37,10 +41,19 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   Locale? _locale;
+  ThemeMode _themeMode = ThemeMode.system;
 
   void setLocale(Locale locale) {
     setState(() {
       _locale = locale;
+    });
+  }
+
+  void toggleTheme() {
+    setState(() {
+      _themeMode = _themeMode == ThemeMode.dark
+          ? ThemeMode.light
+          : ThemeMode.dark;
     });
   }
 
@@ -57,15 +70,20 @@ class _MyAppState extends State<MyApp> {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      theme: lightTheme, // ✅ use from theme.dart
+      darkTheme: darkTheme, // ✅ use from theme.dart
+      themeMode: _themeMode,
       initialRoute: '/',
       routes: {
         '/': (context) => const SplashScreen(),
         '/login': (context) => const LoginPage(),
         '/signup': (context) => const SignUpPage(),
-        '/home': (context) => const MainNavigation(), // Changed from HomeScreen() to MainNavigation()
+        '/home': (context) =>
+            const MainNavigation(), // Changed from HomeScreen() to MainNavigation()
         '/rainwater_harvesting': (context) => const RainwaterEducationPage(),
-        '/artifitial_recharge': (context) => const ArtificialRechargePage(),
-        '/rooftop_rainwaterharvesting': (context) => const RooftopRainwaterHarvestingPage(),
+        '/artificial_recharge': (context) => const ArtificialRechargePage(),
+        '/rooftop_rainwaterharvesting': (context) =>
+            const RooftopRainwaterHarvestingPage(),
         '/fresh_water': (context) => const WhyFreshWaterMattersPage(),
         '/chat': (context) => const ChatPage(), // <-- Register your chat screen
       },

@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:aquacatch/components.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -127,7 +126,7 @@ class _ChatPageState extends State<ChatPage> {
                       maxWidth: MediaQuery.of(context).size.width * 0.7,
                     ),
                     decoration: BoxDecoration(
-                      color: msg['isBot'] ? Colors.grey[200] : primaryColor,
+                      color: msg['isBot'] ? Colors.grey[200] : Theme.of(context).primaryColor,
                       borderRadius: BorderRadius.only(
                         topLeft: const Radius.circular(12),
                         topRight: const Radius.circular(12),
@@ -177,7 +176,7 @@ class _ChatPageState extends State<ChatPage> {
                 ),
                 const SizedBox(width: 8),
                 CircleAvatar(
-                  backgroundColor: primaryColor,
+                  backgroundColor: Theme.of(context).primaryColor,
                   child: IconButton(
                     icon: const Icon(Icons.send, color: Colors.white, size: 20),
                     onPressed: _sendMessage,

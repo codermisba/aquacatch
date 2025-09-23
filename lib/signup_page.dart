@@ -1,10 +1,8 @@
-// ignore_for_file: use_build_context_synchronously, deprecated_member_use
-
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'components.dart';
 import 'home_screen.dart';
+import 'theme.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -62,29 +60,26 @@ class _SignUpPageState extends State<SignUpPage>
 
     if (passwordController.text.trim() !=
         confirmPasswordController.text.trim()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Passwords do not match")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Passwords do not match")));
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      // Create user with Firebase Auth
-      UserCredential userCredential =
-          await _auth.createUserWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
+      UserCredential userCredential = await _auth
+          .createUserWithEmailAndPassword(
+            email: emailController.text.trim(),
+            password: passwordController.text.trim(),
+          );
 
       User? user = userCredential.user;
 
       if (user != null) {
-        // Update Firebase Auth displayName
         await user.updateDisplayName(nameController.text.trim());
 
-        // Save additional user info to Firestore using uid
         await _firestore.collection('users').doc(user.uid).set({
           'name': nameController.text.trim(),
           'email': user.email,
@@ -92,7 +87,6 @@ class _SignUpPageState extends State<SignUpPage>
         });
       }
 
-      // Navigate to Home Page
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => HomeScreen()),
@@ -108,66 +102,146 @@ class _SignUpPageState extends State<SignUpPage>
       } else {
         message = e.message ?? 'Something went wrong';
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool isPassword = false,
+    String? Function(String?)? validator,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      child: TextFormField(
+        controller: controller,
+        obscureText: isPassword,
+        style: const TextStyle(fontSize: 16),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: Colors.grey[500]),
+          prefixIcon: Icon(
+            icon,
+            color: Theme.of(context).primaryColor,
+            size: 22,
+          ),
+          filled: true,
+          fillColor: Theme.of(context).cardColor,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: Theme.of(context).primaryColor,
+              width: 2,
+            ),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.red, width: 1.5),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.red, width: 2),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
+        ),
+        validator: validator,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWeb = screenWidth > 600;
+    final cardWidth = isWeb ? 450.0 : double.infinity;
+
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Center(
         child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(
+            horizontal: isWeb ? 20 : 16,
+            vertical: 20,
+          ),
           child: FadeTransition(
             opacity: _fadeAnimation,
             child: SlideTransition(
               position: _slideAnimation,
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
+              child: Container(
+                width: cardWidth,
                 child: Card(
-                  elevation: 8,
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  elevation: isWeb ? 12 : 8,
                   shadowColor: primaryColor.withOpacity(0.3),
+
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(20),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(24.0),
+                    padding: EdgeInsets.all(isWeb ? 32.0 : 24.0),
                     child: Form(
                       key: _formKey,
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          // Icon
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: primaryColor.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.person_add_alt_1,
+                              size: 48,
+                              color: Theme.of(context).primaryColor,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Heading
                           Text(
                             "Create Account",
                             style: TextStyle(
-                              fontSize: 26,
+                              fontSize: isWeb ? 32 : 28,
                               fontWeight: FontWeight.bold,
-                              color: primaryColor,
+                              color: Theme.of(context).primaryColor,
+                              letterSpacing: 0.5,
                             ),
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 8),
                           Text(
                             "Sign up to get started with AquaCatch",
                             style: TextStyle(
-                              fontSize: 15,
-                              color: Colors.grey[700],
+                              fontSize: isWeb ? 16 : 15,
+                              color: Theme.of(context).cardColor,
+                              fontWeight: FontWeight.w400,
                             ),
                             textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 25),
+                          const SizedBox(height: 30),
 
-                          // Name
-                          customTextField(
+                          // Fields
+                          _buildTextField(
                             controller: nameController,
-                            hint: "Full Name",
+                            label: "Full Name",
                             icon: Icons.person,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
@@ -176,12 +250,10 @@ class _SignUpPageState extends State<SignUpPage>
                               return null;
                             },
                           ),
-
-                          // Email
-                          customTextField(
+                          _buildTextField(
                             controller: emailController,
-                            hint: "Email",
-                            icon: Icons.email,
+                            label: "Email",
+                            icon: Icons.email_outlined,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return "Please enter your email";
@@ -192,13 +264,11 @@ class _SignUpPageState extends State<SignUpPage>
                               return null;
                             },
                           ),
-
-                          // Password
-                          customTextField(
+                          _buildTextField(
                             controller: passwordController,
-                            hint: "Password",
+                            label: "Password",
+                            icon: Icons.lock_outline,
                             isPassword: true,
-                            icon: Icons.lock,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return "Please enter a password";
@@ -209,13 +279,11 @@ class _SignUpPageState extends State<SignUpPage>
                               return null;
                             },
                           ),
-
-                          // Confirm Password
-                          customTextField(
+                          _buildTextField(
                             controller: confirmPasswordController,
-                            hint: "Confirm Password",
+                            label: "Confirm Password",
+                            icon: Icons.lock_reset,
                             isPassword: true,
-                            icon: Icons.lock_outline,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return "Please confirm your password";
@@ -229,30 +297,76 @@ class _SignUpPageState extends State<SignUpPage>
 
                           const SizedBox(height: 20),
 
+                          // Sign Up Button
                           _isLoading
-                              ? const CircularProgressIndicator(
-                                  color: primaryColor,
+                              ? Container(
+                                  height: 52,
+                                  child: Center(
+                                    child: CircularProgressIndicator(
+                                      color: Theme.of(context).primaryColor,
+                                      strokeWidth: 3,
+                                    ),
+                                  ),
                                 )
-                              : customButton("Sign Up", _signUp),
-
-                          const SizedBox(height: 12),
-
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text("Already have an account? "),
-                              GestureDetector(
-                                onTap: () =>
-                                    Navigator.pushNamed(context, '/login'),
-                                child: const Text(
-                                  "Login",
-                                  style: TextStyle(
-                                    color: primaryColor,
-                                    fontWeight: FontWeight.bold,
+                              : Container(
+                                  width: double.infinity,
+                                  height: 52,
+                                  child: ElevatedButton(
+                                    onPressed: _signUp,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Theme.of(
+                                        context,
+                                      ).primaryColor,
+                                      foregroundColor: Colors.white,
+                                      elevation: 3,
+                                      shadowColor: primaryColor.withOpacity(
+                                        0.3,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      "Sign Up",
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+
+                          const SizedBox(height: 20),
+
+                          // Already have an account
+                          Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  "Already have an account? ",
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 15,
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () =>
+                                      Navigator.pushNamed(context, '/login'),
+                                  child: Text(
+                                    "Login",
+                                    style: TextStyle(
+                                      color: Theme.of(context).primaryColor,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                      decoration: TextDecoration.none,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),

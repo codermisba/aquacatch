@@ -9,7 +9,6 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'dart:convert';
-import 'components.dart';
 
 class ResultPage extends StatefulWidget {
   final double annualRainfall;
@@ -335,7 +334,7 @@ Future<void> generatePdf(String detailedReport) async {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Report", style: TextStyle(color: Colors.white)),
-        backgroundColor: primaryColor,
+        backgroundColor: Theme.of(context).primaryColor,
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -364,10 +363,10 @@ Future<void> generatePdf(String detailedReport) async {
                         height: 150, fit: BoxFit.contain),
                     const SizedBox(height: 12),
                     Text(getStructureLabel(),
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: primaryColor)),
+                            color: Theme.of(context).primaryColor)),
                   ],
                 ),
               ),
@@ -408,9 +407,9 @@ Future<void> generatePdf(String detailedReport) async {
               future: _detailedReportFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Padding(
+                  return Padding(
                     padding: EdgeInsets.all(16),
-                    child: Center(child: CircularProgressIndicator(color: primaryColor)),
+                    child: Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor)),
                   );
                 }
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -424,11 +423,11 @@ Future<void> generatePdf(String detailedReport) async {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("Detailed Report",
+                         Text("Detailed Report",
                             style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: primaryColor)),
+                                color: Theme.of(context).primaryColor)),
                         const SizedBox(height: 12),
                         MarkdownBody(
                           data: snapshot.data!,
@@ -439,7 +438,7 @@ Future<void> generatePdf(String detailedReport) async {
                             p: const TextStyle(fontSize: 14, color: Colors.black87),
                             h1: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                             h2: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                            strong: const TextStyle(color: primaryColor),
+                            strong: TextStyle(color: Theme.of(context).primaryColor),
                           ),
                         ),
                       ],
@@ -455,11 +454,11 @@ Future<void> generatePdf(String detailedReport) async {
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    icon: const Icon(Icons.edit, color: textColor),
+                    icon: const Icon(Icons.edit),
                     label: const Text("Edit",
-                        style: TextStyle(color: textColor, fontSize: 16)),
+                        style: TextStyle(fontSize: 16)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor,
+                      backgroundColor: Theme.of(context).primaryColor,
                     ),
                     onPressed: () => Navigator.pop(context),
                   ),
@@ -467,16 +466,16 @@ Future<void> generatePdf(String detailedReport) async {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
-                    icon: const Icon(Icons.download, color: textColor),
+                    style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor),
+                    icon: const Icon(Icons.download),
                     label: const Text("Save Report",
-                        style: TextStyle(color: textColor, fontSize: 16)),
+                        style: TextStyle( fontSize: 16)),
                     onPressed: () async {
                       showDialog(
                         context: context,
                         barrierDismissible: false,
-                        builder: (context) => const Center(
-                            child: CircularProgressIndicator(color: primaryColor)),
+                        builder: (context) => Center(
+                            child: CircularProgressIndicator(color: Theme.of(context).primaryColor)),
                       );
 
                       try {
@@ -520,8 +519,8 @@ Future<void> generatePdf(String detailedReport) async {
         children: [
           Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
           Text(value,
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, color: primaryColor)),
+              style: TextStyle(
+                  fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor)),
         ],
       ),
     );

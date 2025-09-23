@@ -18,6 +18,15 @@ class AssessmentPage extends StatefulWidget {
 
 class _AssessmentPageState extends State<AssessmentPage> {
   String? selectedAssessment; // null → no selection yet
+  bool _isRoofMaterialExpanded = false; // ✅ added missing variable
+  String? _soilType; // holds selected soil type
+  bool _isSoilTypeExpanded = false; // expansion state
+
+  final List<Map<String, String>> _roofTypeOptions = [
+    {'value': 'concrete', 'label': 'Concrete'},
+    {'value': 'gi_sheet', 'label': 'GI Sheet'},
+    {'value': 'asbestos', 'label': 'Asbestos'},
+  ];
 
   // Common Controllers
   final TextEditingController _locationController = TextEditingController(
@@ -40,10 +49,11 @@ class _AssessmentPageState extends State<AssessmentPage> {
   final TextEditingController _wellDiameterController = TextEditingController(
     text: "1",
   ); // meters
-  String _soilType = "Sandy";
-  String _city = "Solapur"; // default
 
+  // String _soilType = "Sandy";
+  String _city = "Solapur"; // default
   String _roofType = "concrete";
+
   File? _roofImage;
   bool _isLoading = false;
 
@@ -153,20 +163,18 @@ class _AssessmentPageState extends State<AssessmentPage> {
 
     double groundwaterLevel = await fetchGroundwaterLevel(location);
     final aquiferData = await fetchAquiferData(location);
-    String aquiferType = "Unconfined Aquifer"; // default
-    if (aquiferData != null && aquiferData["aquifer"] != null) {
-      aquiferType = aquiferData["aquifer"];
-    }
+    String aquiferType = aquiferData?["aquifer"] ?? "Unconfined Aquifer";
 
     Map<String, double> coefficients = {
       "concrete": 0.85,
       "gi_sheet": 0.95,
       "asbestos": 0.80,
     };
-    double coeff = _roofType != null ? coefficients[_roofType] ?? 0.85 : 0.85;
+    double coeff = coefficients[_roofType] ?? 0.85;
 
     double annualDemand = dwellers * 135 * 365;
-    double potentialLiters = (annualRainfall / 1000) * roofAreaM2 * coeff * 1000;
+    double potentialLiters =
+        (annualRainfall / 1000) * roofAreaM2 * coeff * 1000;
 
     String structure;
     if (selectedAssessment == "AR") {
@@ -289,6 +297,110 @@ class _AssessmentPageState extends State<AssessmentPage> {
     return null;
   }
 
+  Widget _buildTextExpandableSelector({
+    required String title,
+    required IconData icon,
+    required List<Map<String, String>> options,
+    required String? selectedValue,
+    required bool isExpanded,
+    required VoidCallback onToggle,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      decoration: BoxDecoration(
+        color: Theme.of(context).inputDecorationTheme.fillColor ?? Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: Theme.of(context).primaryColor, // ✅ same as TextFormField
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            onTap: onToggle,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(icon, color: Theme.of(context).primaryColor),
+                    const SizedBox(width: 8),
+                    Text(
+                      selectedValue ?? title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                AnimatedRotation(
+                  turns: isExpanded ? 0.5 : 0.0,
+                  duration: const Duration(milliseconds: 300),
+                  child: Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            child: isExpanded
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Column(
+                      children: options.map((option) {
+                        final isSelected = selectedValue == option['value'];
+                        return Container(
+                          margin: const EdgeInsets.symmetric(vertical: 6),
+                          decoration: BoxDecoration(
+                            color:
+                                Theme.of(
+                                  context,
+                                ).inputDecorationTheme.fillColor ??
+                                Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isSelected
+                                  ? Theme.of(context).colorScheme.secondary
+                                  : Theme.of(context).primaryColor,
+                              width: isSelected ? 2 : 1.5,
+                            ),
+                          ),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 4,
+                            ),
+                            title: Text(
+                              option['label'] ?? option['value']!,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            onTap: () {
+                              onChanged(option['value']);
+                              onToggle(); // auto-collapse
+                            },
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -297,76 +409,76 @@ class _AssessmentPageState extends State<AssessmentPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(
-              child: const Text(
+            const Center(
+              child: Text(
                 "Please select your preferred assessment",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
             const SizedBox(height: 12),
 
-            // Assessment Selection Buttons (always visible)
+            // Assessment Selection Buttons
             Row(
-  children: [
-    Expanded(
-      child: ElevatedButton(
-        onPressed: () {
-          setState(() {
-            selectedAssessment = "Rooftop";
-          });
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: selectedAssessment == "Rooftop"
-              ? primaryColor
-              : Colors.grey.shade200,
-          foregroundColor: selectedAssessment == "Rooftop"
-              ? Colors.white
-              : Colors.black,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        child: const Text(
-          "Rooftop\nRainwater Harvesting",
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-        ),
-      ),
-    ),
-    const SizedBox(width: 12),
-    Expanded(
-      child: ElevatedButton(
-        onPressed: () {
-          setState(() {
-            selectedAssessment = "AR";
-          });
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: selectedAssessment == "AR"
-              ? accentColor
-              : Colors.grey.shade200,
-          foregroundColor: selectedAssessment == "AR"
-              ? Colors.white
-              : Colors.black,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        child: const Text(
-          "Artificial\nRecharge (AR)",
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-        ),
-      ),
-    ),
-  ],
-),
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        selectedAssessment = "Rooftop";
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: selectedAssessment == "Rooftop"
+                          ? Theme.of(context).primaryColor
+                          : Theme.of(context).cardColor,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      "Rooftop\nRainwater Harvesting",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        selectedAssessment = "AR";
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: selectedAssessment == "AR"
+                          ? Theme.of(context).primaryColor
+                          : Theme.of(context).cardColor,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      "Artificial\nRecharge (AR)",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
 
             const SizedBox(height: 20),
 
-            // If no selection yet, prompt; otherwise show the form
+            // If no selection yet
             if (selectedAssessment == null)
               Center(
                 child: Padding(
@@ -378,227 +490,199 @@ class _AssessmentPageState extends State<AssessmentPage> {
                 ),
               )
             else
-              Center(
-                child: Card(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  elevation: 8,
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      children: [
-                        const Icon(
-                          Icons.assessment_outlined,
-                          size: 80,
-                          color: primaryColor,
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          selectedAssessment == "Rooftop"
-                              ? "Rainwater Harvesting Assessment"
-                              : "Artificial Recharge Assessment",
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: primaryColor,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
+              _buildForm(context),
+          ],
+        ),
+      ),
+    );
+  }
 
-                        // Location Section
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            "Location Details",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey[800],
-                            ),
-                          ),
-                        ),
-                        const Divider(),
-                        customTextField(
-                          controller: _locationController,
-                          hint: "Location",
-                          icon: Icons.location_city,
-                        ),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            icon: const Icon(
-                              Icons.my_location,
-                              color: Colors.white,
-                            ),
-                            label: const Text(
-                              "Get My Location",
-                              style: TextStyle(color: Colors.white),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: primaryColor,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            onPressed: _getCurrentLocation,
-                          ),
-                        ),
+  Widget _buildForm(BuildContext context) {
+    return Center(
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        elevation: 8,
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            children: [
+              Icon(
+                Icons.assessment_outlined,
+                size: 80,
+                color: Theme.of(context).primaryColor,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                selectedAssessment == "Rooftop"
+                    ? "Rainwater Harvesting Assessment"
+                    : "Artificial Recharge Assessment",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+              const SizedBox(height: 20),
 
-                        const SizedBox(height: 16),
-
-                        // Form fields
-                        if (selectedAssessment == "Rooftop") ...[
-                          // Rooftop Fields
-                          customTextField(
-                            controller: _roofAreaController,
-                            hint: "Rooftop Area (sqft)",
-                            icon: Icons.roofing,
-                          ),
-                          customTextField(
-                            controller: _openSpaceController,
-                            hint: "Open Space Area (sqft)",
-                            icon: Icons.landscape,
-                          ),
-                          const SizedBox(height: 8),
-                          DropdownButtonFormField<String>(
-                            value: _roofType,
-                            items: ["concrete", "gi_sheet", "asbestos"].map((
-                              type,
-                            ) {
-                              return DropdownMenuItem(
-                                value: type,
-                                child: Text(
-                                  type[0].toUpperCase() + type.substring(1),
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (val) {
-                              setState(() {
-                                _roofType = val ?? "concrete";
-                              });
-                            },
-                            decoration: InputDecoration(
-                              labelText: "Roof Type",
-                              prefixIcon: const Icon(Icons.roofing),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          customTextField(
-                            controller: _dwellersController,
-                            hint: "Number of Dwellers",
-                            icon: Icons.people,
-                          ),
-                          const SizedBox(height: 12),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              icon: const Icon(
-                                Icons.upload,
-                                color: Colors.white,
-                              ),
-                              label: const Text(
-                                "Upload Roof Photo (optional)",
-                                style: TextStyle(color: Colors.white),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: accentColor,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              onPressed: _pickImage,
-                            ),
-                          ),
-                          if (_roofImage != null)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              child: Image.file(
-                                _roofImage!,
-                                height: 120,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                        ] else ...[
-                          // AR Fields
-                          customTextField(
-                            controller: _wellDepthController,
-                            hint: "Well Depth (m)",
-                            icon: Icons.height,
-                          ),
-                          customTextField(
-                            controller: _wellDiameterController,
-                            hint: "Well Diameter (m)",
-                            icon: Icons.circle,
-                          ),
-                          const SizedBox(height: 8),
-                          DropdownButtonFormField<String>(
-                            value: _soilType,
-                            items: ["Sandy", "Clayey", "Loamy"].map((soil) {
-                              return DropdownMenuItem(
-                                value: soil,
-                                child: Text(soil),
-                              );
-                            }).toList(),
-                            onChanged: (val) {
-                              setState(() {
-                                _soilType = val ?? "Sandy";
-                              });
-                            },
-                            decoration: InputDecoration(
-                              labelText: "Soil Type",
-                              prefixIcon: const Icon(Icons.landscape),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
-                        ],
-
-                        const SizedBox(height: 24),
-
-                        _isLoading
-                            ? const CircularProgressIndicator(
-                                color: primaryColor,
-                              )
-                            : SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  icon: const Icon(
-                                    Icons.file_present,
-                                    color: Colors.white,
-                                  ),
-                                  label: const Text(
-                                    "Generate Report",
-                                    style: TextStyle(color: Colors.white),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: primaryColor,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 16,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  onPressed: _navigateToResult,
-                                ),
-                              ),
-                      ],
-                    ),
+              // Location
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "Location Details",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).primaryColor,
                   ),
                 ),
               ),
-          ],
+              const Divider(),
+              customTextField(
+                controller: _locationController,
+                hint: "Location",
+                icon: Icons.location_city,
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.my_location, color: Colors.white),
+                  label: const Text(
+                    "Get My Location",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).primaryColor,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: _getCurrentLocation,
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              if (selectedAssessment == "Rooftop") ...[
+                customTextField(
+                  controller: _roofAreaController,
+                  hint: "Rooftop Area (sqft)",
+                  icon: Icons.roofing,
+                ),
+                customTextField(
+                  controller: _openSpaceController,
+                  hint: "Open Space Area (sqft)",
+                  icon: Icons.landscape,
+                ),
+                const SizedBox(height: 8),
+                _buildTextExpandableSelector(
+                  title: 'Select Roof Material',
+                  icon: Icons.roofing,
+                  options: _roofTypeOptions,
+                  selectedValue: _roofType,
+                  isExpanded: _isRoofMaterialExpanded,
+                  onToggle: () => setState(
+                    () => _isRoofMaterialExpanded = !_isRoofMaterialExpanded,
+                  ),
+                  onChanged: (value) =>
+                      setState(() => _roofType = value ?? "concrete"),
+                ),
+                const SizedBox(height: 8),
+                customTextField(
+                  controller: _dwellersController,
+                  hint: "Number of Dwellers",
+                  icon: Icons.people,
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.upload, color: Colors.white),
+                    label: const Text(
+                      "Upload Roof Photo (optional)",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).primaryColor,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: _pickImage,
+                  ),
+                ),
+                if (_roofImage != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Image.file(
+                      _roofImage!,
+                      height: 120,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+              ] else ...[
+                customTextField(
+                  controller: _wellDepthController,
+                  hint: "Well Depth (m)",
+                  icon: Icons.height,
+                ),
+                customTextField(
+                  controller: _wellDiameterController,
+                  hint: "Well Diameter (m)",
+                  icon: Icons.circle,
+                ),
+                const SizedBox(height: 8),
+                // Soil Type Expandable Selector
+                _buildTextExpandableSelector(
+                  title: 'Select Soil Type',
+                  icon: Icons.landscape,
+                  options: [
+                    {'value': 'Sandy', 'label': 'Sandy'},
+                    {'value': 'Clayey', 'label': 'Clayey'},
+                    {'value': 'Loamy', 'label': 'Loamy'},
+                  ],
+                  selectedValue: _soilType,
+                  isExpanded: _isSoilTypeExpanded,
+                  onToggle: () => setState(
+                    () => _isSoilTypeExpanded = !_isSoilTypeExpanded,
+                  ),
+                  onChanged: (value) =>
+                      setState(() => _soilType = value ?? "Sandy"),
+                ),
+              ],
+
+              const SizedBox(height: 24),
+
+              _isLoading
+                  ? CircularProgressIndicator(
+                      color: Theme.of(context).primaryColor,
+                    )
+                  : SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(
+                          Icons.file_present,
+                          color: Colors.white,
+                        ),
+                        label: const Text(
+                          "Generate Report",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).primaryColor,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: _navigateToResult,
+                      ),
+                    ),
+            ],
+          ),
         ),
       ),
     );
