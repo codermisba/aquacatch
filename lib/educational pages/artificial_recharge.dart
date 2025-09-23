@@ -11,7 +11,7 @@ class _ArtificialRechargePageState extends State<ArtificialRechargePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           'Artificial Recharge',
@@ -30,7 +30,7 @@ class _ArtificialRechargePageState extends State<ArtificialRechargePage> {
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
@@ -53,17 +53,17 @@ class _ArtificialRechargePageState extends State<ArtificialRechargePage> {
                         ),
                         child: const Icon(
                           Icons.science,
-                          color: Color(0xFF009688),
+                          color: Color.fromARGB(255, 0, 188, 157),
                           size: 24,
                         ),
                       ),
                       const SizedBox(width: 12),
                       const Text(
-                        'Definition',
+                        'Introduction',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF00695C),
+                          color: Color.fromARGB(255, 0, 188, 157),
                         ),
                       ),
                     ],
@@ -79,12 +79,12 @@ class _ArtificialRechargePageState extends State<ArtificialRechargePage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'Artificial recharge involves techniques like infiltration basins, recharge wells, and percolation tanks to enhance groundwater replenishment by directing surface water into aquifers.',
                     style: TextStyle(
                       fontSize: 16,
                       height: 1.6,
-                      color: Color(0xFF424242),
+                      //color: Theme.of(context).cardColor,
                     ),
                   ),
                 ],
@@ -103,7 +103,7 @@ class _ArtificialRechargePageState extends State<ArtificialRechargePage> {
               'Environmental Impact',
               'Artificial recharge helps maintain groundwater levels, reduces land subsidence, improves water quality by natural filtration, and supports ecosystem sustainability.',
               Icons.eco,
-              const Color(0xFF004D40),
+              const Color.fromARGB(255, 0, 189, 157),
             ),
 
             const SizedBox(height: 20),
@@ -123,7 +123,7 @@ class _ArtificialRechargePageState extends State<ArtificialRechargePage> {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -163,7 +163,7 @@ class _ArtificialRechargePageState extends State<ArtificialRechargePage> {
             style: const TextStyle(
               fontSize: 16,
               height: 1.6,
-              color: Color(0xFF424242),
+              // color: Color(0xFF424242),
             ),
           ),
         ],
@@ -199,7 +199,7 @@ class _ArtificialRechargePageState extends State<ArtificialRechargePage> {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -232,7 +232,7 @@ class _ArtificialRechargePageState extends State<ArtificialRechargePage> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF009688),
+                  color: Color.fromARGB(255, 0, 188, 157),
                 ),
               ),
             ],
@@ -249,8 +249,21 @@ class _ArtificialRechargePageState extends State<ArtificialRechargePage> {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [Colors.teal[50]!, Colors.green[50]!],
+                    colors: Theme.of(context).brightness == Brightness.light
+                        ? [
+                            Theme.of(context).primaryColor.withOpacity(0.1),
+                            Theme.of(context).primaryColor.withOpacity(0.2),
+                          ]
+                        : [
+                            Theme.of(
+                              context,
+                            ).colorScheme.surfaceVariant.withOpacity(0.2),
+                            Theme.of(
+                              context,
+                            ).colorScheme.surface.withOpacity(0.1),
+                          ],
                   ),
+
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.grey[300]!),
                 ),
@@ -315,7 +328,7 @@ class _ArtificialRechargePageState extends State<ArtificialRechargePage> {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -338,7 +351,7 @@ class _ArtificialRechargePageState extends State<ArtificialRechargePage> {
                 ),
                 child: const Icon(
                   Icons.water,
-                  color: Color(0xFF00796B),
+                  color: Color.fromARGB(255, 0, 188, 157),
                   size: 24,
                 ),
               ),
@@ -348,7 +361,7 @@ class _ArtificialRechargePageState extends State<ArtificialRechargePage> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF00796B),
+                  color: Color.fromARGB(255, 0, 188, 157),
                 ),
               ),
             ],
@@ -429,7 +442,7 @@ class _ArtificialRechargePageState extends State<ArtificialRechargePage> {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -452,7 +465,7 @@ class _ArtificialRechargePageState extends State<ArtificialRechargePage> {
                 ),
                 child: const Icon(
                   Icons.settings,
-                  color: Color(0xFF004D40),
+                  color: Color.fromARGB(255, 0, 188, 157),
                   size: 24,
                 ),
               ),
@@ -462,7 +475,7 @@ class _ArtificialRechargePageState extends State<ArtificialRechargePage> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF004D40),
+                  color: Color.fromARGB(255, 0, 188, 157),
                 ),
               ),
             ],

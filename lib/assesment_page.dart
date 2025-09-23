@@ -431,9 +431,16 @@ class _AssessmentPageState extends State<AssessmentPage> {
                       backgroundColor: selectedAssessment == "Rooftop"
                           ? Theme.of(context).primaryColor
                           : Theme.of(context).cardColor,
+                      foregroundColor: selectedAssessment == "Rooftop"
+                          ? Colors.white
+                          : Theme.of(context).primaryColor, // text/icon color
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: Theme.of(context).primaryColor, // border color
+                          width: 1.5,
+                        ),
                       ),
                     ),
                     child: const Text(
@@ -458,9 +465,16 @@ class _AssessmentPageState extends State<AssessmentPage> {
                       backgroundColor: selectedAssessment == "AR"
                           ? Theme.of(context).primaryColor
                           : Theme.of(context).cardColor,
+                      foregroundColor: selectedAssessment == "AR"
+                          ? Colors.white
+                          : Theme.of(context).primaryColor,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: Theme.of(context).primaryColor,
+                          width: 1.5,
+                        ),
                       ),
                     ),
                     child: const Text(
@@ -475,7 +489,6 @@ class _AssessmentPageState extends State<AssessmentPage> {
                 ),
               ],
             ),
-
             const SizedBox(height: 20),
 
             // If no selection yet
