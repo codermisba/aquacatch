@@ -30,46 +30,47 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-     // Call the async function like this:
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    _fetchCounts(); // ensures the widget is fully built before fetching
-  });
-  }
-
- Future<void> _fetchCounts() async {
-  if (user == null) return;
-
-  try {
-    // Fetch reports
-    final reportSnapshot = await FirebaseFirestore.instance
-        .collection("results")
-        .where('userId', isEqualTo: user!.uid)
-        .get();
-
-    // Fetch assessments
-    // final assessmentSnapshot = await FirebaseFirestore.instance
-    //     .collection("assessments")
-    //     .where('userId', isEqualTo: user!.uid)
-    //     .get();
-
-    double latestWaterSaved = 0;
-    if (reportSnapshot.docs.isNotEmpty) {
-      final latestReport = reportSnapshot.docs.last.data();
-      latestWaterSaved = (latestReport['potentialLiters'] ?? 0).toInt();
-    }
-
-    setState(() {
-      reportCount = reportSnapshot.docs.length;
-      waterSaved = latestWaterSaved; // show water saved instead of past assessments
+    // Call the async function like this:
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchCounts(); // ensures the widget is fully built before fetching
     });
-
-    print("Reports: $reportCount, Water Saved: $latestWaterSaved");
-  } catch (e) {
-    print("Error fetching counts: $e");
   }
-}
 
- @override
+  Future<void> _fetchCounts() async {
+    if (user == null) return;
+
+    try {
+      // Fetch reports
+      final reportSnapshot = await FirebaseFirestore.instance
+          .collection("results")
+          .where('userId', isEqualTo: user!.uid)
+          .get();
+
+      // Fetch assessments
+      // final assessmentSnapshot = await FirebaseFirestore.instance
+      //     .collection("assessments")
+      //     .where('userId', isEqualTo: user!.uid)
+      //     .get();
+
+      double latestWaterSaved = 0;
+      if (reportSnapshot.docs.isNotEmpty) {
+        final latestReport = reportSnapshot.docs.last.data();
+        latestWaterSaved = (latestReport['potentialLiters'] ?? 0).toInt();
+      }
+
+      setState(() {
+        reportCount = reportSnapshot.docs.length;
+        waterSaved =
+            latestWaterSaved; // show water saved instead of past assessments
+      });
+
+      print("Reports: $reportCount, Water Saved: $latestWaterSaved");
+    } catch (e) {
+      print("Error fetching counts: $e");
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     // Removed all Scaffold, AppBar, BottomNavigationBar, WillPopScope
     // Now only contains the content
@@ -295,28 +296,39 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     ];
 
-    return Column(
-      children: [
-        // First row - 2 cards
-        Row(
-          children: [
-            Expanded(child: _buildLearningCard(context, learningTopics[0])),
-            const SizedBox(width: 12),
-            Expanded(child: _buildLearningCard(context, learningTopics[1])),
-          ],
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 600; // 👈 breakpoint
+
+    if (isMobile) {
+      // 📱 Mobile → full width + small padding
+      return Column(
+        children: learningTopics.map((topic) {
+          return Container(
+            margin: const EdgeInsets.symmetric(
+              vertical: 8,
+              horizontal: 12,
+            ), // ✅ extra padding
+            width: double.infinity,
+            child: _buildLearningCard(context, topic),
+          );
+        }).toList(),
+      );
+    } else {
+      // 💻 Web/Tablet → side-by-side row
+      return Center(
+        child: Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          alignment: WrapAlignment.center,
+          children: learningTopics.map((topic) {
+            return ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 300, minWidth: 250),
+              child: _buildLearningCard(context, topic),
+            );
+          }).toList(),
         ),
-        const SizedBox(height: 12),
-        // Second row - 2 cards
-        Row(
-          children: [
-            Expanded(child: _buildLearningCard(context, learningTopics[2])),
-            const SizedBox(width: 12),
-            Expanded(child: _buildLearningCard(context, learningTopics[3])),
-          ],
-        ),
-        const SizedBox(height: 12),
-      ],
-    );
+      );
+    }
   }
 
   Widget _buildLearningCard(BuildContext context, Map<String, dynamic> topic) {
@@ -337,26 +349,14 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Card(
         elevation: 6,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Container(
-          height: 220,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                topic['color'].withOpacity(0.1),
-                topic['color'].withOpacity(0.05),
-              ],
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Image section
-              Container(
-                height: 100,
-                width: double.infinity,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min, // ✅ height adjusts to content
+          children: [
+            // 📸 Image with fixed aspect ratio
+            AspectRatio(
+              aspectRatio: 16 / 9, // ✅ image always in 16:9 ratio
+              child: Container(
                 decoration: BoxDecoration(
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(16),
@@ -364,7 +364,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   image: DecorationImage(
                     image: AssetImage(topic['image']),
-                    fit: BoxFit.cover,
+                    fit: BoxFit.cover, // ✅ no stretch
                   ),
                 ),
                 child: Container(
@@ -391,62 +391,55 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-              // Content section
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            ),
+
+            // 📖 Text & actions auto expand
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    topic['title'],
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: topic['color'],
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    topic['description'],
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                      height: 1.3,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       Text(
-                        topic['title'],
+                        'Learn More',
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
                           color: topic['color'],
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 6),
-                      Expanded(
-                        child: Text(
-                          topic['description'],
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                            height: 1.3,
-                          ),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      // Learn more indicator
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Text(
-                            'Learn More',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: topic['color'],
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            Icons.arrow_forward_ios,
-                            size: 12,
-                            color: topic['color'],
-                          ),
-                        ],
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.arrow_forward_ios,
+                        size: 12,
+                        color: topic['color'],
                       ),
                     ],
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

@@ -79,9 +79,23 @@ class _MainNavigationState extends State<MainNavigation> {
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: Theme.of(context).brightness == Brightness.light
+                    ? [
+                        primaryColor.withOpacity(0.9),
+                        primaryColor,
+                      ] // light theme gradient
+                    : [Colors.black87, Colors.black], // dark theme gradient
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
           title: Text(
             _getAppBarTitle(),
-            style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
           ),
           centerTitle: true,
           automaticallyImplyLeading: false,
