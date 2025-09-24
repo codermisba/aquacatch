@@ -9,7 +9,6 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'dart:convert';
-import 'components.dart';
 
 class ResultPage extends StatefulWidget {
   final double annualRainfall;
@@ -58,9 +57,9 @@ class _ResultPageState extends State<ResultPage> {
     final payload = {
       "model": hfModel,
       "messages": [
-        {"role": "user", "content": prompt}
+        {"role": "user", "content": prompt},
       ],
-      "parameters": {"temperature": 0.7, "max_new_tokens": 600}
+      "parameters": {"temperature": 0.7, "max_new_tokens": 600},
     };
 
     try {
@@ -68,7 +67,7 @@ class _ResultPageState extends State<ResultPage> {
         url,
         headers: {
           "Authorization": "Bearer $hfToken",
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
         body: jsonEncode(payload),
       );
@@ -89,7 +88,8 @@ class _ResultPageState extends State<ResultPage> {
 
   // ---------------- Generate detailed AI report ----------------
   Future<String> generateDetailedReport() async {
-    String prompt = """
+    String prompt =
+        """
 You are AquaBot, a water harvesting expert. Generate a professional, detailed water harvesting report for a household with these details:
 
 - Annual Rainfall: ${widget.annualRainfall} mm
@@ -127,7 +127,6 @@ Use markdown headings:
   Future<void> saveResultToFirebase(String detailedReport) async {
     final user = FirebaseAuth.instance.currentUser;
 
-
     if (user == null) return;
 
     final resultData = {
@@ -147,162 +146,205 @@ Use markdown headings:
     };
 
     await FirebaseFirestore.instance.collection("results").add(resultData);
-    
-
   }
 
-  
+  Future<void> generatePdf(String detailedReport) async {
+    final pdf = pw.Document();
 
-Future<void> generatePdf(String detailedReport) async {
-  final pdf = pw.Document();
+    final ttf = await PdfGoogleFonts.nunitoRegular();
 
-  final ttf = await PdfGoogleFonts.nunitoRegular();
+    // Load structure image
+    final imageBytes = (await rootBundle.load(
+      getStructureImage(),
+    )).buffer.asUint8List();
+    final structureImage = pw.MemoryImage(imageBytes);
 
-  // Load structure image
-  final imageBytes = (await rootBundle.load(getStructureImage()))
-      .buffer
-      .asUint8List();
-  final structureImage = pw.MemoryImage(imageBytes);
+    // Utility to clean Markdown formatting
+    String cleanMarkdown(String line) {
+      line = line.replaceAll(RegExp(r'^#+\s*'), '');
+      line = line.replaceAll(RegExp(r'\*\*'), '');
+      line = line.replaceAll(RegExp(r'\*'), '');
+      return line.trim();
+    }
 
-  // Utility to clean Markdown formatting
-  String cleanMarkdown(String line) {
-    line = line.replaceAll(RegExp(r'^#+\s*'), '');
-    line = line.replaceAll(RegExp(r'\*\*'), '');
-    line = line.replaceAll(RegExp(r'\*'), '');
-    return line.trim();
-  }
+    bool isTableLine(String line) => line.startsWith('|') && line.endsWith('|');
 
-  bool isTableLine(String line) => line.startsWith('|') && line.endsWith('|');
+    bool isTableSeparatorLine(String line) =>
+        line.replaceAll('|', '').trim().replaceAll('-', '').isEmpty;
 
-  bool isTableSeparatorLine(String line) => line.replaceAll('|', '').trim().replaceAll('-', '').isEmpty;
-
-  List<List<String>> parseTable(List<String> lines) {
-    final filteredLines = lines.where((l) => !isTableSeparatorLine(l)).toList();
-    return filteredLines.map((line) {
-      return line
-          .split('|')
-          .map((cell) => cell.replaceAll(RegExp(r'\*\*'), '').trim())
-          .where((cell) => cell.isNotEmpty)
+    List<List<String>> parseTable(List<String> lines) {
+      final filteredLines = lines
+          .where((l) => !isTableSeparatorLine(l))
           .toList();
-    }).toList();
-  }
+      return filteredLines.map((line) {
+        return line
+            .split('|')
+            .map((cell) => cell.replaceAll(RegExp(r'\*\*'), '').trim())
+            .where((cell) => cell.isNotEmpty)
+            .toList();
+      }).toList();
+    }
 
-  pw.Widget buildTable(List<List<String>> rows) {
-    return pw.Table.fromTextArray(
-      headers: rows.first,
-      data: rows.sublist(1),
-      cellStyle: pw.TextStyle(fontSize: 12, font: ttf),
-      headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: ttf),
-      border: pw.TableBorder.all(),
-      headerDecoration: pw.BoxDecoration(color: PdfColors.grey300),
-      cellAlignment: pw.Alignment.centerLeft,
-    );
-  }
+    pw.Widget buildTable(List<List<String>> rows) {
+      return pw.Table.fromTextArray(
+        headers: rows.first,
+        data: rows.sublist(1),
+        cellStyle: pw.TextStyle(fontSize: 12, font: ttf),
+        headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: ttf),
+        border: pw.TableBorder.all(),
+        headerDecoration: pw.BoxDecoration(color: PdfColors.grey300),
+        cellAlignment: pw.Alignment.centerLeft,
+      );
+    }
 
-  List<pw.Widget> buildMarkdownWidgets(String markdown) {
-    final lines = markdown.split('\n');
-    final widgets = <pw.Widget>[];
-    final tableBuffer = <String>[];
+    List<pw.Widget> buildMarkdownWidgets(String markdown) {
+      final lines = markdown.split('\n');
+      final widgets = <pw.Widget>[];
+      final tableBuffer = <String>[];
 
-    for (var line in lines) {
-      line = line.trim();
-      if (line.isEmpty) {
-        if (tableBuffer.isNotEmpty) {
+      for (var line in lines) {
+        line = line.trim();
+        if (line.isEmpty) {
+          if (tableBuffer.isNotEmpty) {
+            widgets.add(buildTable(parseTable(tableBuffer)));
+            tableBuffer.clear();
+          }
+          widgets.add(pw.SizedBox(height: 4));
+          continue;
+        }
+
+        if (line.startsWith('---') || line.startsWith('--')) {
+          widgets.add(pw.Divider());
+          continue;
+        }
+
+        if (isTableLine(line)) {
+          tableBuffer.add(line);
+          continue;
+        } else if (tableBuffer.isNotEmpty) {
           widgets.add(buildTable(parseTable(tableBuffer)));
           tableBuffer.clear();
         }
-        widgets.add(pw.SizedBox(height: 4));
-        continue;
+
+        if (line.startsWith('# ')) {
+          widgets.add(
+            pw.Align(
+              alignment: pw.Alignment.center,
+              child: pw.Text(
+                cleanMarkdown(line),
+                style: pw.TextStyle(
+                  fontSize: 20,
+                  fontWeight: pw.FontWeight.bold,
+                  font: ttf,
+                ),
+              ),
+            ),
+          );
+        } else if (line.startsWith('## ')) {
+          widgets.add(
+            pw.Align(
+              alignment: pw.Alignment.center,
+              child: pw.Text(
+                cleanMarkdown(line),
+                style: pw.TextStyle(
+                  fontSize: 18,
+                  fontWeight: pw.FontWeight.bold,
+                  font: ttf,
+                ),
+              ),
+            ),
+          );
+        } else if (line.startsWith('### ')) {
+          widgets.add(
+            pw.Align(
+              alignment: pw.Alignment.center,
+              child: pw.Text(
+                cleanMarkdown(line),
+                style: pw.TextStyle(
+                  fontSize: 16,
+                  fontWeight: pw.FontWeight.bold,
+                  font: ttf,
+                ),
+              ),
+            ),
+          );
+        } else if (line.startsWith('- ')) {
+          widgets.add(
+            pw.Bullet(
+              text: cleanMarkdown(line),
+              style: pw.TextStyle(font: ttf),
+            ),
+          );
+        } else {
+          widgets.add(
+            pw.Text(
+              cleanMarkdown(line),
+              style: pw.TextStyle(fontSize: 12, font: ttf),
+            ),
+          );
+        }
       }
 
-      if (line.startsWith('---') || line.startsWith('--')) {
-        widgets.add(pw.Divider());
-        continue;
-      }
-
-      if (isTableLine(line)) {
-        tableBuffer.add(line);
-        continue;
-      } else if (tableBuffer.isNotEmpty) {
+      if (tableBuffer.isNotEmpty) {
         widgets.add(buildTable(parseTable(tableBuffer)));
-        tableBuffer.clear();
       }
 
-      if (line.startsWith('# ')) {
-        widgets.add(pw.Align(
-          alignment: pw.Alignment.center,
-          child: pw.Text(cleanMarkdown(line),
-              style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, font: ttf)),
-        ));
-      } else if (line.startsWith('## ')) {
-        widgets.add(pw.Align(
-          alignment: pw.Alignment.center,
-          child: pw.Text(cleanMarkdown(line),
-              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, font: ttf)),
-        ));
-      } else if (line.startsWith('### ')) {
-        widgets.add(pw.Align(
-          alignment: pw.Alignment.center,
-          child: pw.Text(cleanMarkdown(line),
-              style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, font: ttf)),
-        ));
-      } else if (line.startsWith('- ')) {
-        widgets.add(pw.Bullet(text: cleanMarkdown(line), style: pw.TextStyle(font: ttf)));
-      } else {
-        widgets.add(pw.Text(cleanMarkdown(line), style: pw.TextStyle(fontSize: 12, font: ttf)));
-      }
+      return widgets;
     }
 
-    if (tableBuffer.isNotEmpty) {
-      widgets.add(buildTable(parseTable(tableBuffer)));
-    }
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(16),
+        build: (context) => [
+          // Main Heading
+          pw.Align(
+            alignment: pw.Alignment.center,
+            child: pw.Text(
+              'Rainwater Harvesting Analysis',
+              style: pw.TextStyle(
+                fontSize: 24,
+                fontWeight: pw.FontWeight.bold,
+                font: ttf,
+              ),
+            ),
+          ),
+          pw.SizedBox(height: 16),
 
-    return widgets;
+          // Subheading for Recommended Structure
+          pw.Align(
+            alignment: pw.Alignment.center,
+            child: pw.Text(
+              'Recommended Structure',
+              style: pw.TextStyle(
+                fontSize: 18,
+                fontWeight: pw.FontWeight.bold,
+                font: ttf,
+              ),
+            ),
+          ),
+          pw.SizedBox(height: 8),
+
+          // Structure image
+          pw.Center(child: pw.Image(structureImage, height: 150)),
+
+          pw.SizedBox(height: 16),
+
+          // Rest of report
+          ...buildMarkdownWidgets(detailedReport),
+        ],
+      ),
+    );
+
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdf.save(),
+    );
   }
-
-  pdf.addPage(
-    pw.MultiPage(
-      pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.all(16),
-      build: (context) => [
-        // Main Heading
-        pw.Align(
-          alignment: pw.Alignment.center,
-          child: pw.Text('Rainwater Harvesting Analysis',
-              style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, font: ttf)),
-        ),
-        pw.SizedBox(height: 16),
-
-        // Subheading for Recommended Structure
-        pw.Align(
-          alignment: pw.Alignment.center,
-          child: pw.Text('Recommended Structure',
-              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, font: ttf)),
-        ),
-        pw.SizedBox(height: 8),
-
-        // Structure image
-        pw.Center(child: pw.Image(structureImage, height: 150)),
-
-        pw.SizedBox(height: 16),
-
-        // Rest of report
-        ...buildMarkdownWidgets(detailedReport),
-      ],
-    ),
-  );
-
-  await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdf.save());
-}
-
-
-
 
   // ---------------- Utility ----------------
   String getStructureLabel() {
     switch (widget.structure.toLowerCase()) {
-      case "small tank on rooftop":
+      case "small surface tank":
         return "Small Rooftop Tank";
       case "medium-sized surface tank":
         return "Medium Surface Tank";
@@ -315,8 +357,8 @@ Future<void> generatePdf(String detailedReport) async {
 
   String getStructureImage() {
     switch (widget.structure.toLowerCase()) {
-      case "small tank on rooftop":
-        return "assets/images/small.jpg";
+      case "small surface tank":
+        return "assets/images/small.png";
       case "medium-sized surface tank":
         return "assets/images/medium.jpg";
       case "large underground tank":
@@ -329,13 +371,15 @@ Future<void> generatePdf(String detailedReport) async {
   @override
   Widget build(BuildContext context) {
     double annualDemand = widget.dwellers * 135 * 365;
-    double arVolume = (widget.potentialLiters > annualDemand) ? widget.potentialLiters - annualDemand : 0;
+    double arVolume = (widget.potentialLiters > annualDemand)
+        ? widget.potentialLiters - annualDemand
+        : 0;
     bool arNeeded = arVolume > 0;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text("Report", style: TextStyle(color: Colors.white)),
-        backgroundColor: primaryColor,
+        backgroundColor: Theme.of(context).primaryColor,
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -354,20 +398,29 @@ Future<void> generatePdf(String detailedReport) async {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    Text("Recommended Structure",
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[800])),
+                    Text(
+                      "Recommended Structure",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        // color: Colors.grey[800],
+                      ),
+                    ),
                     const SizedBox(height: 12),
-                    Image.asset(getStructureImage(),
-                        height: 150, fit: BoxFit.contain),
+                    Image.asset(
+                      getStructureImage(),
+                      height: 150,
+                      fit: BoxFit.contain,
+                    ),
                     const SizedBox(height: 12),
-                    Text(getStructureLabel(),
-                        style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: primaryColor)),
+                    Text(
+                      getStructureLabel(),
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -384,19 +437,45 @@ Future<void> generatePdf(String detailedReport) async {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    const Text("Calculation Summary",
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey)),
+                    const Text(
+                      "Calculation Summary",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                      ),
+                    ),
                     const SizedBox(height: 12),
-                    _infoRow("Roof Area:", "${widget.roofArea.toStringAsFixed(1)} m²"),
-                    _infoRow("Annual Rainfall:", "${widget.annualRainfall.toStringAsFixed(1)} mm"),
-                    _infoRow("Potential Harvested Water:", "${widget.potentialLiters.toStringAsFixed(1)} L"),
-                    _infoRow("Annual Water Demand:", "${annualDemand.toStringAsFixed(1)} L"),
-                    _infoRow("AR Needed:", arNeeded ? "Yes (${arVolume.toStringAsFixed(1)} L)" : "No"),
-                    _infoRow("Estimated Cost:", "₹${widget.cost.toStringAsFixed(0)}"),
-                    _infoRow("Expected Savings:", "₹${widget.savings.toStringAsFixed(0)}"),
+                    _infoRow(
+                      "Roof Area:",
+                      "${widget.roofArea.toStringAsFixed(1)} m²",
+                    ),
+                    _infoRow(
+                      "Annual Rainfall:",
+                      "${widget.annualRainfall.toStringAsFixed(1)} mm",
+                    ),
+                    _infoRow(
+                      "Potential Harvested Water:",
+                      "${widget.potentialLiters.toStringAsFixed(1)} L",
+                    ),
+                    _infoRow(
+                      "Annual Water Demand:",
+                      "${annualDemand.toStringAsFixed(1)} L",
+                    ),
+                    _infoRow(
+                      "AR Needed:",
+                      arNeeded
+                          ? "Yes (${arVolume.toStringAsFixed(1)} L)"
+                          : "No",
+                    ),
+                    _infoRow(
+                      "Estimated Cost:",
+                      "₹${widget.cost.toStringAsFixed(0)}",
+                    ),
+                    _infoRow(
+                      "Expected Savings:",
+                      "₹${widget.savings.toStringAsFixed(0)}",
+                    ),
                   ],
                 ),
               ),
@@ -408,9 +487,13 @@ Future<void> generatePdf(String detailedReport) async {
               future: _detailedReportFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Padding(
+                  return Padding(
                     padding: EdgeInsets.all(16),
-                    child: Center(child: CircularProgressIndicator(color: primaryColor)),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
                   );
                 }
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -418,29 +501,45 @@ Future<void> generatePdf(String detailedReport) async {
                 }
                 return Card(
                   elevation: 4,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("Detailed Report",
-                            style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: primaryColor)),
+                        Text(
+                          "Detailed Report",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
                         const SizedBox(height: 12),
                         MarkdownBody(
                           data: snapshot.data!,
                           selectable: true,
-                          styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-                            tableColumnWidth: const IntrinsicColumnWidth(),
-                            tableCellsPadding: const EdgeInsets.all(6),
-                            p: const TextStyle(fontSize: 14, color: Colors.black87),
-                            h1: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                            h2: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                            strong: const TextStyle(color: primaryColor),
-                          ),
+                          styleSheet:
+                              MarkdownStyleSheet.fromTheme(
+                                Theme.of(context),
+                              ).copyWith(
+                                tableColumnWidth: const IntrinsicColumnWidth(),
+                                tableCellsPadding: const EdgeInsets.all(6),
+                                p: const TextStyle(fontSize: 14),
+                                h1: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                h2: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                strong: TextStyle(
+                                  color: Theme.of(context).primaryColor,
+                                ),
+                              ),
                         ),
                       ],
                     ),
@@ -455,11 +554,10 @@ Future<void> generatePdf(String detailedReport) async {
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    icon: const Icon(Icons.edit, color: textColor),
-                    label: const Text("Edit",
-                        style: TextStyle(color: textColor, fontSize: 16)),
+                    icon: const Icon(Icons.edit),
+                    label: const Text("Edit", style: TextStyle(fontSize: 16)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor,
+                      backgroundColor: Theme.of(context).primaryColor,
                     ),
                     onPressed: () => Navigator.pop(context),
                   ),
@@ -467,22 +565,30 @@ Future<void> generatePdf(String detailedReport) async {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
-                    icon: const Icon(Icons.download, color: textColor),
-                    label: const Text("Save Report",
-                        style: TextStyle(color: textColor, fontSize: 16)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).primaryColor,
+                    ),
+                    icon: const Icon(Icons.download),
+                    label: const Text(
+                      "Save Report",
+                      style: TextStyle(fontSize: 16),
+                    ),
                     onPressed: () async {
                       showDialog(
                         context: context,
                         barrierDismissible: false,
-                        builder: (context) => const Center(
-                            child: CircularProgressIndicator(color: primaryColor)),
+                        builder: (context) => Center(
+                          child: CircularProgressIndicator(
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
                       );
 
                       try {
-                        final detailedReport = await _detailedReportFuture; // reuse the existing report
-    await saveResultToFirebase(detailedReport);
-    await generatePdf(detailedReport); // pass it here
+                        final detailedReport =
+                            await _detailedReportFuture; // reuse the existing report
+                        await saveResultToFirebase(detailedReport);
+                        await generatePdf(detailedReport); // pass it here
 
                         Navigator.of(context).pop();
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -519,9 +625,13 @@ Future<void> generatePdf(String detailedReport) async {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-          Text(value,
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, color: primaryColor)),
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).primaryColor,
+            ),
+          ),
         ],
       ),
     );

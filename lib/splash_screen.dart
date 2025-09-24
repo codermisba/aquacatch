@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'components.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -37,7 +36,7 @@ class _SplashScreenState extends State<SplashScreen> {
           style: TextStyle(
             fontSize: 36,
             fontWeight: FontWeight.bold,
-            color: primaryColor,
+            color: Theme.of(context).primaryColor,
           ),
         ),
       ),

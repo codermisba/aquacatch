@@ -12,14 +12,11 @@ class _WhyFreshWaterMattersPageState extends State<WhyFreshWaterMattersPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           'Why Fresh Water Matters',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         backgroundColor: const Color(0xFF0288D1),
         elevation: 0,
@@ -42,7 +39,7 @@ class _WhyFreshWaterMattersPageState extends State<WhyFreshWaterMattersPage> {
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
@@ -96,7 +93,7 @@ class _WhyFreshWaterMattersPageState extends State<WhyFreshWaterMattersPage> {
                     style: TextStyle(
                       fontSize: 16,
                       height: 1.6,
-                      color: Color(0xFF424242),
+                      // color: Color(0xFF424242),
                     ),
                   ),
                 ],
@@ -135,12 +132,16 @@ class _WhyFreshWaterMattersPageState extends State<WhyFreshWaterMattersPage> {
   }
 
   Widget _buildSection(
-    String title, String content, IconData icon, Color color) {
+    String title,
+    String content,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -166,13 +167,13 @@ class _WhyFreshWaterMattersPageState extends State<WhyFreshWaterMattersPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: color,
+                  title,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
                 ),
-              ),
               ),
             ],
           ),
@@ -182,7 +183,7 @@ class _WhyFreshWaterMattersPageState extends State<WhyFreshWaterMattersPage> {
             style: const TextStyle(
               fontSize: 16,
               height: 1.6,
-              color: Color(0xFF424242),
+              // color: Color(0xFF424242),
             ),
           ),
         ],

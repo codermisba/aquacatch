@@ -13,7 +13,7 @@ class _RooftopRainwaterHarvestingPageState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           'Rooftop Rain Water Harvesting',
@@ -27,13 +27,12 @@ class _RooftopRainwaterHarvestingPageState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            
-            // Definition Section with Image
+            // Intro Section with Image
             Container(
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
@@ -62,7 +61,7 @@ class _RooftopRainwaterHarvestingPageState
                       ),
                       const SizedBox(width: 12),
                       const Text(
-                        'Definition',
+                        'Introduction',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -84,17 +83,12 @@ class _RooftopRainwaterHarvestingPageState
                   const SizedBox(height: 16),
                   const Text(
                     'Rooftop rainwater harvesting involves collecting rainwater from rooftops through gutters and downspouts, filtering it, and storing it for later use such as irrigation, flushing, or even potable use after treatment.',
-                    style: TextStyle(
-                      fontSize: 16,
-                      height: 1.6,
-                      color: Color(0xFF424242),
-                    ),
+                    style: TextStyle(fontSize: 16, height: 1.6),
                   ),
                 ],
               ),
             ),
 
-            
             // Benefits Section
 
             // Techniques Section
@@ -129,7 +123,7 @@ class _RooftopRainwaterHarvestingPageState
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -166,141 +160,157 @@ class _RooftopRainwaterHarvestingPageState
           const SizedBox(height: 16),
           Text(
             content,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               height: 1.6,
-              color: Color(0xFF424242),
+              //color: Theme.of(context).cardColor,
             ),
           ),
         ],
       ),
     );
   }
-  
-Widget _buildBenefitsSection(BuildContext context) {
-  final benefits = [
-    {
-      'title': 'Water Conservation',
-      'desc': 'Reduces reliance on groundwater and municipal supply',
-      'icon': Icons.water_drop,
-    },
-    {
-      'title': 'Cost Savings',
-      'desc': 'Lowers water bills and maintenance costs',
-      'icon': Icons.savings,
-    },
-    {
-      'title': 'Flood Reduction',
-      'desc': 'Minimizes surface runoff and urban flooding',
-      'icon': Icons.flood,
-    },
-    {
-      'title': 'Improved Water Quality',
-      'desc': 'Filtered rainwater is naturally soft and clean',
-      'icon': Icons.verified,
-    },
-  ];
 
-  final screenWidth = MediaQuery.of(context).size.width;
-  final cardWidth = (screenWidth - 16 * 2 - 12 * 1) / 2; // Two cards per row with margin
+  Widget _buildBenefitsSection(BuildContext context) {
+    final benefits = [
+      {
+        'title': 'Water Conservation',
+        'desc': 'Reduces reliance on groundwater and municipal supply',
+        'icon': Icons.water_drop,
+      },
+      {
+        'title': 'Cost Savings',
+        'desc': 'Lowers water bills and maintenance costs',
+        'icon': Icons.savings,
+      },
+      {
+        'title': 'Flood Reduction',
+        'desc': 'Minimizes surface runoff and urban flooding',
+        'icon': Icons.flood,
+      },
+      {
+        'title': 'Improved Water Quality',
+        'desc': 'Filtered rainwater is naturally soft and clean',
+        'icon': Icons.verified,
+      },
+    ];
 
-  return SingleChildScrollView(
-    child: Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2196F3).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.star,
-                  color: Color(0xFF2196F3),
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'Key Benefits',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2196F3),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: benefits.map((benefit) {
-              return SizedBox(
-                width: cardWidth, // Responsive width
-                child: Container(
-                  padding: const EdgeInsets.all(16),
+    final screenWidth = MediaQuery.of(context).size.width;
+    final cardWidth =
+        (screenWidth - 16 * 2 - 12 * 1) / 2; // Two cards per row with margin
+
+    return SingleChildScrollView(
+      child: Container(
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Colors.blue[50]!, Colors.lightBlue[50]!],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[300]!),
+                    color: const Color(0xFF2196F3).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min, // Make height flexible
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        benefit['icon'] as IconData,
-                        size: 32,
-                        color: const Color(0xFF2196F3),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        benefit['title'] as String,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        benefit['desc'] as String,
-                        style: TextStyle(
-                            fontSize: 12, color: Colors.grey[600]),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+                  child: const Icon(
+                    Icons.star,
+                    color: Color(0xFF2196F3),
+                    size: 24,
                   ),
                 ),
-              );
-            }).toList(),
-          ),
-        ],
+                const SizedBox(width: 12),
+                const Text(
+                  'Key Benefits',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF2196F3),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: benefits.map((benefit) {
+                return SizedBox(
+                  width: cardWidth, // Responsive width
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: Theme.of(context).brightness == Brightness.light
+                            ? [
+                                Theme.of(context).primaryColor.withOpacity(0.1),
+                                Theme.of(context).primaryColor.withOpacity(0.2),
+                              ]
+                            : [
+                                Theme.of(
+                                  context,
+                                ).colorScheme.surfaceVariant.withOpacity(0.2),
+                                Theme.of(
+                                  context,
+                                ).colorScheme.surface.withOpacity(0.1),
+                              ],
+                      ),
+
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min, // Make height flexible
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          benefit['icon'] as IconData,
+                          size: 32,
+                          color: const Color(0xFF2196F3),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          benefit['title'] as String,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          benefit['desc'] as String,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildTechniquesSection() {
     final techniques = [
@@ -330,7 +340,7 @@ Widget _buildBenefitsSection(BuildContext context) {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -412,7 +422,7 @@ Widget _buildBenefitsSection(BuildContext context) {
                           technique['desc'] as String,
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey[600],
+                            // color: Colors.grey[600],
                           ),
                         ),
                       ],
@@ -447,7 +457,7 @@ Widget _buildBenefitsSection(BuildContext context) {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(

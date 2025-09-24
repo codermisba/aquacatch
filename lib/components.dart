@@ -1,15 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
+import 'theme.dart';
 
-/// Color scheme
-const Color primaryColor = Color(0xFF015670); // dark blue-green
-const Color accentColor = Color(0xFF06B6D4); // teal
-const Color bgColor = Color(0xFFF3F4F6); // light grey
-const Color textColor = Colors.white;
-const Color buttonColor = Color(0xFF3595a8);
-
-/// Animated Header
+/// Animated Header Widget
 Widget animatedHeader(String animationPath, {double height = 180}) {
   return Lottie.asset(animationPath, height: height);
 }
@@ -34,9 +28,11 @@ Widget customTextField({
         hintStyle: GoogleFonts.poppins(color: Colors.grey[500]),
         prefixIcon: icon != null ? Icon(icon, color: primaryColor) : null,
         filled: true,
-        fillColor: Colors.white,
-        contentPadding:
-            const EdgeInsets.symmetric(vertical: 16.0, horizontal: 20.0),
+        //fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 16.0,
+          horizontal: 20.0,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: primaryColor),
@@ -58,13 +54,12 @@ Widget customTextField({
   );
 }
 
-/// Custom Button
+/// Custom Button Widget
 Widget customButton(String text, VoidCallback onPressed) {
   return SizedBox(
     width: double.infinity,
     child: ElevatedButton(
       style: ElevatedButton.styleFrom(
-        backgroundColor: primaryColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         padding: const EdgeInsets.symmetric(vertical: 16.0),
         elevation: 3,

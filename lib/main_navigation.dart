@@ -1,12 +1,10 @@
-// Create this as lib/main_navigation.dart
-import 'package:aquacatch/reports_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:aquacatch/main.dart';
-import 'components.dart';
 import 'home_screen.dart';
 import 'assesment_page.dart';
 import 'profile_page.dart';
+import 'theme.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -19,19 +17,16 @@ class _MainNavigationState extends State<MainNavigation> {
   int _selectedIndex = 0;
   DateTime? lastBackPressTime;
 
-  // List of pages corresponding to bottom navigation items
   late List<Widget> _pages;
 
   @override
   void initState() {
     super.initState();
     _pages = [
-      const HomeScreen(), // Home
-      const TutorialsPage(), // Search
-      const AssessmentPage(), // Assessment
-      const ReportsPage(), // Reports
+      const HomeScreen(),
+      const AssessmentPage(),
+      const ReportsPage(),
       ProfilePage(
-        // Profile
         setLocale: (locale) {
           MyApp.setLocale(context, locale);
         },
@@ -45,34 +40,27 @@ class _MainNavigationState extends State<MainNavigation> {
     });
   }
 
-  // Get appropriate app bar title based on selected index
   String _getAppBarTitle() {
     switch (_selectedIndex) {
       case 0:
         return "AquaCatch";
       case 1:
-        return "Tutorials";
-      case 2:
         return "Assessment";
-      case 3:
+      case 2:
         return "Reports";
-      case 4:
+      case 3:
         return "Profile";
       default:
         return "AquaCatch";
     }
   }
 
-  
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        // Handle back press - exit only from home screen
         if (_selectedIndex != 0) {
-          setState(() {
-            _selectedIndex = 0; // Go to home screen
-          });
+          setState(() => _selectedIndex = 0);
           return false;
         }
 
@@ -85,54 +73,82 @@ class _MainNavigationState extends State<MainNavigation> {
           );
           return false;
         }
-        // Exit the app
         SystemNavigator.pop();
         return true;
       },
       child: Scaffold(
-        backgroundColor: bgColor,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
-          backgroundColor: const Color.fromRGBO(1, 86, 112, 1),
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: Theme.of(context).brightness == Brightness.light
+                    ? [
+                        primaryColor.withOpacity(0.9),
+                        primaryColor,
+                      ] // light theme gradient
+                    : [Colors.black87, Colors.black], // dark theme gradient
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
           title: Text(
             _getAppBarTitle(),
-            style: const TextStyle(color: Colors.white, fontSize: 28),
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
           ),
           centerTitle: true,
-          iconTheme: const IconThemeData(color: Colors.white),
-          automaticallyImplyLeading: false, // Control leading manually
+          automaticallyImplyLeading: false,
+          elevation: 0,
           leading: _selectedIndex != 0
               ? IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () {
-                    setState(() {
-                      _selectedIndex = 0; // Navigate back to dashboard (Home)
-                    });
-                  },
+                  icon: const Icon(Icons.arrow_back_ios_new),
+                  onPressed: () => setState(() => _selectedIndex = 0),
                 )
               : null,
+          actions: [
+            IconButton(
+              icon: Icon(
+                Theme.of(context).brightness == Brightness.dark
+                    ? Icons.light_mode
+                    : Icons.dark_mode,
+              ),
+              onPressed: () {
+                MyApp.toggleTheme(context);
+              },
+            ),
+          ],
         ),
-        body: IndexedStack(index: _selectedIndex, children: _pages),
-        // Bottom Navigation Bar from HomeScreen
+        body: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 350),
+          child: IndexedStack(index: _selectedIndex, children: _pages),
+        ),
         bottomNavigationBar: BottomNavigationBar(
           type: BottomNavigationBarType.fixed,
           currentIndex: _selectedIndex,
           onTap: _onItemTapped,
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).cardColor,
           selectedItemColor: primaryColor,
-          unselectedItemColor: Colors.grey,
+          unselectedItemColor: Colors.grey[500],
           elevation: 10,
+          showUnselectedLabels: true,
           items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Tutorials'),
             BottomNavigationBarItem(
-              icon: Icon(Icons.assessment),
+              icon: Icon(Icons.home_rounded),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.task_alt_rounded),
               label: 'Assessment',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.description),
+              icon: Icon(Icons.insert_drive_file_rounded),
               label: 'Reports',
             ),
-            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_rounded),
+              label: 'Profile',
+            ),
           ],
         ),
       ),
@@ -140,103 +156,56 @@ class _MainNavigationState extends State<MainNavigation> {
   }
 }
 
-// Search Page
-class TutorialsPage extends StatefulWidget {
-  const TutorialsPage({super.key});
-
-  @override
-  State<TutorialsPage> createState() => _TutorialsPageState();
-}
-
-class _TutorialsPageState extends State<TutorialsPage> {
-  final TextEditingController _searchController = TextEditingController();
-
-  // Sample tutorials list
-  final List<Map<String, String>> tutorials = [
-    {
-      "title": "Getting Started",
-      "description": "Learn how to set up the app and use its features.",
-    },
-    {
-      "title": "Rainwater Harvesting",
-      "description": "Step-by-step guide on collecting and storing rainwater.",
-    },
-    {
-      "title": "Artificial Recharge",
-      "description": "Learn how to recharge groundwater easily.",
-    },
-    {
-      "title": "Water Filtration",
-      "description": "Simple methods to filter water at home.",
-    },
-  ];
+/// ----------------- Reports Page -----------------
+class ReportsPage extends StatelessWidget {
+  const ReportsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        children: [
-          // Optional: Search Bar for tutorials
-          TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search tutorials...',
-              prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.insert_drive_file_rounded,
+              size: 100,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'No Reports Yet',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Complete an assessment to\ngenerate your first report!',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 30),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                backgroundColor: primaryColor,
               ),
-              filled: true,
-              fillColor: Colors.grey[100],
+              onPressed: () {},
+              icon: const Icon(Icons.add_chart, color: Colors.white),
+              label: const Text(
+                "Start Assessment",
+                style: TextStyle(fontSize: 16, color: Colors.white),
+              ),
             ),
-          ),
-          const SizedBox(height: 20),
-
-          // Tutorials list
-          Expanded(
-            child: ListView.builder(
-              itemCount: tutorials.length,
-              itemBuilder: (context, index) {
-                final tutorial = tutorials[index];
-                return Card(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 3,
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  child: ListTile(
-                    leading: const Icon(
-                      Icons.play_circle_fill,
-                      color: Colors.blue,
-                      size: 40,
-                    ),
-                    title: Text(
-                      tutorial['title']!,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text(tutorial['description']!),
-                    trailing: const Icon(Icons.arrow_forward_ios),
-                    onTap: () {
-                      // Placeholder for navigation to tutorial detail
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text("Clicked on ${tutorial['title']}"),
-                        ),
-                      );
-                    },
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
   }
 }

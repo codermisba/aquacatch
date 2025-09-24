@@ -11,7 +11,7 @@ class _RainwaterEducationPageState extends State<RainwaterEducationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           'What is Rainwater Harvesting?',
@@ -30,7 +30,7 @@ class _RainwaterEducationPageState extends State<RainwaterEducationPage> {
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
@@ -59,7 +59,7 @@ class _RainwaterEducationPageState extends State<RainwaterEducationPage> {
                       ),
                       const SizedBox(width: 12),
                       const Text(
-                        'Definition',
+                        'Introduction',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -80,7 +80,7 @@ class _RainwaterEducationPageState extends State<RainwaterEducationPage> {
                         if (loadingProgress == null) return child;
                         return Container(
                           height: 200,
-                          color: Colors.grey[300],
+                          color: Theme.of(context).cardColor,
                           child: Center(
                             child: CircularProgressIndicator(
                               value: loadingProgress.expectedTotalBytes != null
@@ -95,7 +95,7 @@ class _RainwaterEducationPageState extends State<RainwaterEducationPage> {
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
                           height: 200,
-                          color: Colors.grey[300],
+                          color: Theme.of(context).cardColor,
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -121,7 +121,7 @@ class _RainwaterEducationPageState extends State<RainwaterEducationPage> {
                     style: TextStyle(
                       fontSize: 16,
                       height: 1.6,
-                      color: Color(0xFF424242),
+                      //color: Color(0xFF424242),
                     ),
                   ),
                 ],
@@ -163,7 +163,7 @@ class _RainwaterEducationPageState extends State<RainwaterEducationPage> {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -203,7 +203,7 @@ class _RainwaterEducationPageState extends State<RainwaterEducationPage> {
             style: const TextStyle(
               fontSize: 16,
               height: 1.6,
-              color: Color(0xFF424242),
+              //color: Color(0xFF424242),
             ),
           ),
         ],
@@ -239,7 +239,7 @@ class _RainwaterEducationPageState extends State<RainwaterEducationPage> {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -252,12 +252,11 @@ class _RainwaterEducationPageState extends State<RainwaterEducationPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'How to Harvest Rainwater?',
-            style: TextStyle(
-              fontSize: 22,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
-              color: Colors.blue,
+              color: Theme.of(context).colorScheme.primary, // adaptive
             ),
           ),
           const SizedBox(height: 16),
@@ -266,13 +265,18 @@ class _RainwaterEducationPageState extends State<RainwaterEducationPage> {
               padding: const EdgeInsets.only(bottom: 12),
               child: RichText(
                 text: TextSpan(
-                  style: const TextStyle(fontSize: 16, color: Colors.black),
+                  style: Theme.of(context).textTheme.bodyMedium, // adaptive
                   children: [
                     TextSpan(
                       text: '${comp['title']}: ',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    TextSpan(text: comp['desc']),
+                    TextSpan(
+                      text: comp['desc'],
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
                   ],
                 ),
               ),
@@ -282,121 +286,135 @@ class _RainwaterEducationPageState extends State<RainwaterEducationPage> {
       ),
     );
   }
-Widget _buildBenefitsSection() {
-  final benefits = [
-    {
-      'title': 'Water Conservation',
-      'desc': 'Reduces dependency on groundwater',
-      'icon': Icons.water,
-    },
-    {
-      'title': 'Cost Effective',
-      'desc': 'Low maintenance and operational costs',
-      'icon': Icons.savings,
-    },
-    {
-      'title': 'Flood Control',
-      'desc': 'Reduces surface runoff and flooding',
-      'icon': Icons.flood,
-    },
-    {
-      'title': 'Quality Water',
-      'desc': 'Rainwater is naturally soft and pure',
-      'icon': Icons.verified,
-    },
-  ];
 
-  return Container(
-    margin: const EdgeInsets.all(16),
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.05),
-          blurRadius: 10,
-          offset: const Offset(0, 2),
-        ),
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2196F3).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.star,
-                color: Color(0xFF2196F3),
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Text(
-              'Key Benefits',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF2196F3),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        Wrap(
-          spacing: 12, // Horizontal spacing between boxes
-          runSpacing: 12, // Vertical spacing between rows
-          children: benefits.map((benefit) {
-            return Container(
-              width: 160, // Adjust width as needed
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Colors.blue[50]!, Colors.green[50]!],
+  Widget _buildBenefitsSection() {
+    final benefits = [
+      {
+        'title': 'Water Conservation',
+        'desc': 'Reduces dependency on groundwater',
+        'icon': Icons.water,
+      },
+      {
+        'title': 'Cost Effective',
+        'desc': 'Low maintenance and operational costs',
+        'icon': Icons.savings,
+      },
+      {
+        'title': 'Flood Control',
+        'desc': 'Reduces surface runoff and flooding',
+        'icon': Icons.flood,
+      },
+      {
+        'title': 'Quality Water',
+        'desc': 'Rainwater is naturally soft and pure',
+        'icon': Icons.verified,
+      },
+    ];
+
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2196F3).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey[300]!),
+                child: const Icon(
+                  Icons.star,
+                  color: Color(0xFF2196F3),
+                  size: 24,
+                ),
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    benefit['icon'] as IconData,
-                    size: 32,
-                    color: const Color(0xFF2196F3),
+              const SizedBox(width: 12),
+              const Text(
+                'Key Benefits',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2196F3),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Wrap(
+            spacing: 12, // Horizontal spacing between boxes
+            runSpacing: 12, // Vertical spacing between rows
+            children: benefits.map((benefit) {
+              return Container(
+                width: 160, // Adjust width as needed
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: Theme.of(context).brightness == Brightness.light
+                        ? [
+                            Theme.of(context).primaryColor.withOpacity(0.1),
+                            Theme.of(context).primaryColor.withOpacity(0.2),
+                          ]
+                        : [
+                            Theme.of(
+                              context,
+                            ).colorScheme.surfaceVariant.withOpacity(0.2),
+                            Theme.of(
+                              context,
+                            ).colorScheme.surface.withOpacity(0.1),
+                          ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    benefit['title'] as String,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      benefit['icon'] as IconData,
+                      size: 32,
+                      color: const Color(0xFF2196F3),
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    benefit['desc'] as String,
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
-        ),
-      ],
-    ),
-  );
-}
+                    const SizedBox(height: 8),
+                    Text(
+                      benefit['title'] as String,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      benefit['desc'] as String,
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildMethodsSection() {
     final methods = [
@@ -426,7 +444,7 @@ Widget _buildBenefitsSection() {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -537,7 +555,7 @@ Widget _buildBenefitsSection() {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
