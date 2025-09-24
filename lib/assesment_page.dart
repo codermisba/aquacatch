@@ -17,16 +17,64 @@ class AssessmentPage extends StatefulWidget {
 }
 
 class _AssessmentPageState extends State<AssessmentPage> {
+  String? _selectedRoofShape;
+  bool _isRoofShapeExpanded = false;
+
+  bool _isFilterExpanded = false;
+  String? _selectedFilterType;
   String? selectedAssessment; // null → no selection yet
   bool _isRoofMaterialExpanded = false; // ✅ added missing variable
   String? _soilType; // holds selected soil type
   bool _isSoilTypeExpanded = false; // expansion state
+  // Rooftop shape options (with images)
 
+  final List<Map<String, String>> _filterOptions = [
+    {
+      'value': 'Sand Filter',
+      'label': 'Sand Filter',
+      'image': 'assets/images/sand_filter.jpg',
+    },
+    {
+      'value': 'Charcoal Filter',
+      'label': 'Charcoal Filter',
+      'image': 'assets/images/charcoal_filter.png',
+    },
+    {
+      'value': 'RCC First Flush Filter',
+      'label': 'RCC First Flush Filter',
+      'image': 'assets/images/first_flush.png',
+    },
+    {
+      'value': 'Suggest',
+      'label': 'Suggest',
+      'image': 'assets/images/select.png',
+    },
+  ];
   final List<Map<String, String>> _roofTypeOptions = [
     {'value': 'concrete', 'label': 'Concrete'},
     {'value': 'gi_sheet', 'label': 'GI Sheet'},
     {'value': 'asbestos', 'label': 'Asbestos'},
   ];
+  final List<Map<String, String>> _locationTypeOptions = [
+    {'value': 'urban', 'label': 'Urban'},
+    {'value': 'suburban', 'label': 'Suburban'},
+    {'value': 'rural', 'label': 'Rural'},
+  ];
+  final List<Map<String, String>> _rooftopOptions = [
+    {
+      'value': 'Flat Roof',
+      'label': 'Flat Roof',
+      'image': 'assets/images/flat_roof.png',
+    },
+    {
+      'value': 'Sloped Roof',
+      'label': 'Sloped Roof',
+      'image': 'assets/images/sloped_roof.png',
+    },
+  ];
+
+  String? _selectedLocationType;
+  bool _isLocationTypeExpanded = false;
 
   // Common Controllers
   final TextEditingController _locationController = TextEditingController(
@@ -36,6 +84,9 @@ class _AssessmentPageState extends State<AssessmentPage> {
     text: "120",
   ); // sqft
   final TextEditingController _openSpaceController = TextEditingController(
+    text: "80",
+  ); // sqft
+  final TextEditingController _noOfFloors = TextEditingController(
     text: "80",
   ); // sqft
   final TextEditingController _dwellersController = TextEditingController(
@@ -50,7 +101,6 @@ class _AssessmentPageState extends State<AssessmentPage> {
     text: "1",
   ); // meters
 
-  // String _soilType = "Sandy";
   String _city = "Solapur"; // default
   String _roofType = "concrete";
 
@@ -295,6 +345,152 @@ class _AssessmentPageState extends State<AssessmentPage> {
     }
 
     return null;
+  }
+
+  Widget _buildExpandableSelector({
+    required String title,
+    required IconData icon,
+    required List<Map<String, String>> options,
+    required String? selectedValue,
+    required bool isExpanded,
+    required VoidCallback onToggle,
+    required ValueChanged<String?> onChanged,
+  }) {
+    final crossAxisCount = 2; // 2 items per row
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      decoration: BoxDecoration(
+        color: Theme.of(context).inputDecorationTheme.fillColor ?? Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: Theme.of(context).primaryColor, // ✅ same as text selector
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            onTap: onToggle,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(icon, color: Theme.of(context).primaryColor),
+                    const SizedBox(width: 8),
+                    Text(
+                      selectedValue ?? title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                AnimatedRotation(
+                  turns: isExpanded ? 0.5 : 0.0,
+                  duration: const Duration(milliseconds: 300),
+                  child: Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            child: isExpanded
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: options.length,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: 1.0, // square cells
+                      ),
+                      itemBuilder: (context, index) {
+                        final option = options[index];
+
+                        final isSelected = selectedValue == option['value'];
+
+                        return GestureDetector(
+                          onTap: () {
+                            onChanged(option['value']);
+                            onToggle();
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).inputDecorationTheme.fillColor ??
+                                  Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: isSelected
+                                    ? Theme.of(context).colorScheme.secondary
+                                    : Theme.of(context).primaryColor,
+                                width: isSelected ? 2 : 1.5,
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                Expanded(
+                                  child:
+                                      option['image'] != null &&
+                                          option['image']!.isNotEmpty
+                                      ? ClipRRect(
+                                          borderRadius: BorderRadius.circular(
+                                            14,
+                                          ),
+                                          child: Image.asset(
+                                            option['image']!,
+                                            width: double.infinity,
+                                            height: double.infinity,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        )
+                                      : Center(
+                                          child: Text(
+                                            option['label'] ?? option['value']!,
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w500,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  option['label'] ?? option['value']!,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildTextExpandableSelector({
@@ -568,6 +764,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
                 ),
                 const Divider(),
                 customTextField(
+                  context: context,
                   controller: _locationController,
                   hint: "Location",
                   icon: Icons.location_city,
@@ -592,7 +789,20 @@ class _AssessmentPageState extends State<AssessmentPage> {
                   ),
                 ),
                 const SizedBox(height: 16),
-
+                _buildTextExpandableSelector(
+                  title: 'Select Location Type',
+                  icon: Icons.location_city,
+                  options: _locationTypeOptions,
+                  selectedValue: _selectedLocationType,
+                  isExpanded: _isLocationTypeExpanded,
+                  onToggle: () => setState(
+                    () => _isLocationTypeExpanded = !_isLocationTypeExpanded,
+                  ),
+                  onChanged: (value) => setState(
+                    () => _selectedLocationType =
+                        value ?? "urban", // default value
+                  ),
+                ),
                 // Inputs in grid if wide
                 if (selectedAssessment == "Rooftop")
                   isWide
@@ -603,18 +813,27 @@ class _AssessmentPageState extends State<AssessmentPage> {
                               child: Column(
                                 children: [
                                   customTextField(
+                                    context: context,
                                     controller: _roofAreaController,
                                     hint: "Rooftop Area (sqft)",
                                     icon: Icons.roofing,
                                   ),
                                   const SizedBox(height: 12),
                                   customTextField(
+                                    context: context,
                                     controller: _openSpaceController,
                                     hint: "Open Space Area (sqft)",
                                     icon: Icons.landscape,
                                   ),
+                                  customTextField(
+                                    context: context,
+                                    controller: _noOfFloors,
+                                    hint: "Enter no of floors",
+                                    icon: Icons.business,
+                                  ),
                                   const SizedBox(height: 12),
                                   customTextField(
+                                    context: context,
                                     controller: _dwellersController,
                                     hint: "Number of Dwellers",
                                     icon: Icons.people,
@@ -626,6 +845,22 @@ class _AssessmentPageState extends State<AssessmentPage> {
                             Expanded(
                               child: Column(
                                 children: [
+                                  _buildExpandableSelector(
+                                    title: 'Select Roof Shape',
+                                    icon: Icons.home,
+                                    options: _rooftopOptions,
+                                    selectedValue: _selectedRoofShape,
+                                    isExpanded: _isRoofShapeExpanded,
+                                    onToggle: () => setState(
+                                      () => _isRoofShapeExpanded =
+                                          !_isRoofShapeExpanded,
+                                    ),
+                                    onChanged: (value) => setState(
+                                      () => _selectedRoofShape =
+                                          value ?? "Flat roof",
+                                    ),
+                                  ),
+
                                   _buildTextExpandableSelector(
                                     title: 'Select Roof Material',
                                     icon: Icons.roofing,
@@ -640,6 +875,22 @@ class _AssessmentPageState extends State<AssessmentPage> {
                                       () => _roofType = value ?? "concrete",
                                     ),
                                   ),
+
+                                  _buildExpandableSelector(
+                                    title: 'Select Filter Type',
+                                    icon: Icons.filter_alt,
+                                    options: _filterOptions,
+                                    selectedValue: _selectedFilterType,
+                                    isExpanded: _isFilterExpanded,
+                                    onToggle: () => setState(
+                                      () => _isFilterExpanded =
+                                          !_isFilterExpanded,
+                                    ),
+                                    onChanged: (value) => setState(
+                                      () => _selectedFilterType = value,
+                                    ),
+                                  ),
+
                                   const SizedBox(height: 12),
                                   ElevatedButton.icon(
                                     icon: const Icon(
@@ -679,16 +930,39 @@ class _AssessmentPageState extends State<AssessmentPage> {
                         )
                       : Column(
                           children: [
+                            _buildExpandableSelector(
+                              title: 'Select Roof Shape',
+                              icon: Icons.home,
+                              options: _rooftopOptions,
+                              selectedValue: _selectedRoofShape,
+                              isExpanded: _isRoofShapeExpanded,
+                              onToggle: () => setState(
+                                () => _isRoofShapeExpanded =
+                                    !_isRoofShapeExpanded,
+                              ),
+                              onChanged: (value) => setState(
+                                () => _selectedRoofShape = value ?? "Flat roof",
+                              ),
+                            ),
                             customTextField(
+                              context: context,
                               controller: _roofAreaController,
                               hint: "Rooftop Area (sqft)",
                               icon: Icons.roofing,
                             ),
                             customTextField(
+                              context: context,
                               controller: _openSpaceController,
                               hint: "Open Space Area (sqft)",
                               icon: Icons.landscape,
                             ),
+                            customTextField(
+                              context: context,
+                              controller: _noOfFloors,
+                              hint: "Enter no of floors",
+                              icon: Icons.business,
+                            ),
+
                             _buildTextExpandableSelector(
                               title: 'Select Roof Material',
                               icon: Icons.roofing,
@@ -703,7 +977,20 @@ class _AssessmentPageState extends State<AssessmentPage> {
                                 () => _roofType = value ?? "concrete",
                               ),
                             ),
+                            _buildExpandableSelector(
+                              title: 'Select Filter Type',
+                              icon: Icons.filter_alt,
+                              options: _filterOptions,
+                              selectedValue: _selectedFilterType,
+                              isExpanded: _isFilterExpanded,
+                              onToggle: () => setState(
+                                () => _isFilterExpanded = !_isFilterExpanded,
+                              ),
+                              onChanged: (value) =>
+                                  setState(() => _selectedFilterType = value),
+                            ),
                             customTextField(
+                              context: context,
                               controller: _dwellersController,
                               hint: "Number of Dwellers",
                               icon: Icons.people,
@@ -746,11 +1033,13 @@ class _AssessmentPageState extends State<AssessmentPage> {
                   Column(
                     children: [
                       customTextField(
+                        context: context,
                         controller: _wellDepthController,
                         hint: "Well Depth (m)",
                         icon: Icons.height,
                       ),
                       customTextField(
+                        context: context,
                         controller: _wellDiameterController,
                         hint: "Well Diameter (m)",
                         icon: Icons.circle,

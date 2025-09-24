@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
-import 'theme.dart';
 
 /// Animated Header Widget
 Widget animatedHeader(String animationPath, {double height = 180}) {
@@ -10,44 +9,49 @@ Widget animatedHeader(String animationPath, {double height = 180}) {
 
 /// Custom TextField (with optional validator)
 Widget customTextField({
+  required BuildContext context, // ✅ added context
   required TextEditingController controller,
   required String hint,
   bool isPassword = false,
   IconData? icon,
-  String? Function(String?)? validator, // ✅ optional validator
+  String? Function(String?)? validator,
 }) {
+  final borderColor = Theme.of(context).primaryColor; // dynamic color
+
   return Padding(
     padding: const EdgeInsets.symmetric(vertical: 8.0),
     child: TextFormField(
       controller: controller,
       obscureText: isPassword,
       style: GoogleFonts.poppins(fontSize: 16),
-      validator: validator, // ✅ only works if passed
+      validator: validator,
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: GoogleFonts.poppins(color: Colors.grey[500]),
-        prefixIcon: icon != null ? Icon(icon, color: primaryColor) : null,
+        prefixIcon: icon != null ? Icon(icon, color: borderColor) : null,
         filled: true,
-        //fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(
           vertical: 16.0,
           horizontal: 20.0,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: primaryColor),
+          borderSide: BorderSide(color: borderColor, width: 1.5), // ✅ bolder
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: primaryColor),
+          borderSide: BorderSide(color: borderColor, width: 1.5), // ✅ bolder
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: accentColor, width: 2),
+          borderSide: BorderSide(
+            color: borderColor,
+            width: 2.5,
+          ), // slightly thicker
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Colors.red, width: 1.5),
+          borderSide: const BorderSide(color: Colors.red, width: 2),
         ),
       ),
     ),
