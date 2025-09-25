@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+//import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:http/http.dart' as http;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -65,6 +65,16 @@ class _ResultPageState extends State<ResultPage> {
     _detailedReportFuture = generateDetailedReport();
   }
 
+  String cleanMarkdownForUI(String markdown) {
+    return markdown
+        .replaceAll(RegExp(r'#+\s*'), '') // removes any #, ##, ### etc.
+        .replaceAll(RegExp(r'\*\*'), '') // remove bold markers
+        .replaceAll(
+          RegExp(r'^\s*-\s*', multiLine: true),
+          '• ',
+        ); // keep bullets neat
+  }
+
   // ---------------- Hugging Face call ----------------
   Future<String> getBotResponseHF(String prompt) async {
     final url = Uri.parse("https://router.huggingface.co/v1/chat/completions");
@@ -102,10 +112,11 @@ class _ResultPageState extends State<ResultPage> {
 
   // ---------------- Generate detailed AI report ----------------
   Future<String> generateDetailedReport() async {
-  String prompt = """
+    String prompt =
+        """
 You are AquaBot, a water harvesting expert. Generate a professional, detailed water harvesting report for a household strictly using the given values. 
 
-### Household Details (use only these values):
+ Household Details (use only these values):
 - Annual Rainfall: ${widget.annualRainfall} mm
 - Roof Area: ${widget.roofArea} m²
 - Potential Water Harvested: ${widget.potentialLiters} L
@@ -127,12 +138,12 @@ You are AquaBot, a water harvesting expert. Generate a professional, detailed wa
 ### Instructions for the report:
 1. **Use ONLY the given values** for all costs, savings, and dimensions. Do not assume or generate new numeric values.  
 2. Format the report in strict markdown with the following headings:
-   - # Overview
-   - # Cost Estimation
-   - # Water Savings
-   - # Groundwater & Soil
-   - # Environmental Impact
-   - # Recommendations
+   -  Overview
+   -  Cost Estimation
+   -  Water Savings
+   -  Groundwater & Soil
+   -  Environmental Impact
+   -  Recommendations
 3. Include a **Cost Estimation Table** comparing filter options if relevant, but use only the provided costs.  
 4. Clearly highlight the recommended structure and its benefits.  
 5. Provide practical suggestions for maximizing rainwater harvesting efficiency.  
@@ -141,40 +152,40 @@ You are AquaBot, a water harvesting expert. Generate a professional, detailed wa
 Strictly adhere to the given values. Do not make assumptions.
 """;
 
-  return await getBotResponseHF(prompt);
-}
+    return await getBotResponseHF(prompt);
+  }
 
   // ---------------- Save to Firestore ----------------
   Future<void> saveResultToFirebase(String detailedReport) async {
-  final user = FirebaseAuth.instance.currentUser;
+    final user = FirebaseAuth.instance.currentUser;
 
-  if (user == null) return;
+    if (user == null) return;
 
-  final resultData = {
-    "annualRainfall": widget.annualRainfall,
-    "potentialLiters": widget.potentialLiters,
-    "structure": widget.structure,
-    "filterType": widget.filterType,
-    "pipeType": widget.pipeType,
-    "pipeLength": widget.pipeLength,
-    "pipeCost": widget.pipeCost,
-    "filterCost": widget.filterCost,
-    "tankCost": widget.tankCost,
-    "installationCost": widget.installationCost,
-    "totalCost": widget.totalCost,
-    "savings": widget.savings,
-    "dwellers": widget.dwellers,
-    "roofArea": widget.roofArea,
-    "groundwaterLevel": widget.groundwaterLevel,
-    "aquiferType": widget.aquiferType,
-    "city": widget.city,
-    "detailedReport": detailedReport,
-    "timestamp": FieldValue.serverTimestamp(),
-    "userId": user.uid,
-  };
+    final resultData = {
+      "annualRainfall": widget.annualRainfall,
+      "potentialLiters": widget.potentialLiters,
+      "structure": widget.structure,
+      "filterType": widget.filterType,
+      "pipeType": widget.pipeType,
+      "pipeLength": widget.pipeLength,
+      "pipeCost": widget.pipeCost,
+      "filterCost": widget.filterCost,
+      "tankCost": widget.tankCost,
+      "installationCost": widget.installationCost,
+      "totalCost": widget.totalCost,
+      "savings": widget.savings,
+      "dwellers": widget.dwellers,
+      "roofArea": widget.roofArea,
+      "groundwaterLevel": widget.groundwaterLevel,
+      "aquiferType": widget.aquiferType,
+      "city": widget.city,
+      "detailedReport": detailedReport,
+      "timestamp": FieldValue.serverTimestamp(),
+      "userId": user.uid,
+    };
 
-  await FirebaseFirestore.instance.collection("results").add(resultData);
-}
+    await FirebaseFirestore.instance.collection("results").add(resultData);
+  }
 
   Future<void> generatePdf(String detailedReport) async {
     final pdf = pw.Document();
@@ -572,28 +583,9 @@ Strictly adhere to the given values. Do not make assumptions.
                           ),
                         ),
                         const SizedBox(height: 12),
-                        MarkdownBody(
-                          data: snapshot.data!,
-                          selectable: true,
-                          styleSheet:
-                              MarkdownStyleSheet.fromTheme(
-                                Theme.of(context),
-                              ).copyWith(
-                                tableColumnWidth: const IntrinsicColumnWidth(),
-                                tableCellsPadding: const EdgeInsets.all(6),
-                                p: const TextStyle(fontSize: 14),
-                                h1: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                h2: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                strong: TextStyle(
-                                  color: Theme.of(context).primaryColor,
-                                ),
-                              ),
+                        Text(
+                          cleanMarkdownForUI(snapshot.data!),
+                          style: const TextStyle(fontSize: 14),
                         ),
                       ],
                     ),

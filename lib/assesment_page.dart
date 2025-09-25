@@ -6,7 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:flutter/services.dart' show rootBundle;
-import 'components.dart';
+import 'package:aquacatch/components.dart';
 import 'result_page.dart';
 
 class AssessmentPage extends StatefulWidget {
@@ -30,19 +30,24 @@ class _AssessmentPageState extends State<AssessmentPage> {
 
   final List<Map<String, String>> _filterOptions = [
     {
-      'value': 'Sand Filter',
+      'value': 'sandfilter',
       'label': 'Sand Filter',
       'image': 'assets/images/sand_filter.jpg',
     },
     {
-      'value': 'Charcoal Filter',
+      'value': 'charcoalfilter',
       'label': 'Charcoal Filter',
       'image': 'assets/images/charcoal_filter.png',
     },
     {
-      'value': 'RCC First Flush Filter',
+      'value': 'rccfirstflushfilter',
       'label': 'RCC First Flush Filter',
       'image': 'assets/images/first_flush.png',
+    },
+    {
+      'value': 'meshorscreenfilter',
+      'label': 'Mesh or screen filter',
+      'image': 'assets/images/mesh_filter.png',
     },
     {
       'value': 'Suggest',
@@ -198,239 +203,264 @@ class _AssessmentPageState extends State<AssessmentPage> {
     return 15.0; // fallback
   }
 
-
-/// ---------------- Runoff Coefficients ----------------
-Map<String, double> runoffCoeff = {
-  "GI sheet": 0.90,
-  "Asbestos sheet": 0.80,
-  "Tiled roof": 0.75,
-  "Concrete roof": 0.75,
-};
-
-/// ---------------- Construction Costs ----------------
-double plainCementConcreteCost = 1500; // Rs/cum
-double reinforcedCementConcreteCost = 4700; // Rs/cum
-
-/// ---------------- Plastic Tank Costs ----------------
-Map<String, double> plasticTankCost = {
-  "Hindustan": 1.80,
-  "Jindal": 1.80,
-  "Storex": 0.75,
-  "Ganga": 0.75,
-};
-
-/// ---------------- Load Cost Data ----------------
-Future<List<dynamic>> loadCostData() async {
-  final String response = await rootBundle.loadString('assets/rrwhcostdata.json');
-  final Map<String, dynamic> data = json.decode(response) as Map<String, dynamic>;
-
-  // Extract the list under "Sheet1"
-  final List<dynamic> sheetData = data['Sheet1'] as List<dynamic>;
-  return sheetData;
-}
-/// ---------------- Harvested Water ----------------
-double calculateWaterHarvested({
-  required double annualRainfall,
-  required double roofAreaSqm,
-  required String roofType,
-}) {
-  final coeff = runoffCoeff[roofType] ?? 0.75;
-  return (annualRainfall / 1000) * roofAreaSqm * coeff * 1000;
-}
-
-/// ---------------- Roof Area Range ----------------
-String getRoofAreaRange(double roofAreaSqm) {
-  if (roofAreaSqm <= 100) return "<=100";
-  if (roofAreaSqm <= 1000) return "101-1000";
-  return ">1000";
-}
-
-/// ---------------- Pipe Length ----------------
-double calculatePipeLength({
-  required int numberOfFloors,
-  required String roofShape,
-  double verticalPerFloor = 3.5,
-  double horizontalLength = 10.0,
-}) {
-  double totalLength = numberOfFloors * verticalPerFloor;
-  if (roofShape.toLowerCase() == "sloped") {
-    totalLength += horizontalLength;
-  }
-  return totalLength;
-}
-
-/// ---------------- Pipe Cost ----------------
-double calculatePipeCost({
-  required double totalLength,
-  required double unitCostPerMeter,
-}) {
-  return totalLength * unitCostPerMeter;
-}
-
-/// ---------------- Concrete Cost ----------------
-double calculateConcreteCost({
-  required double volumeCum,
-  bool isRCC = true,
-}) {
-  return volumeCum * (isRCC ? reinforcedCementConcreteCost : plainCementConcreteCost);
-}
-
-/// ---------------- Plastic Tank Cost ----------------
-double calculateTankCost({
-  required double capacityLiters,
-  required String brand,
-}) {
-  final costPerLitre = plasticTankCost[brand] ?? 1.0;
-  return capacityLiters * costPerLitre;
-}
-
-/// ---------------- Filter / Installation Cost ----------------
-Future<double> getEstimatedCost({
-  required String structure,
-  required double roofAreaSqm,
-  required String filterType,
-}) async {
-  final data = await loadCostData();
-  String roofRange = getRoofAreaRange(roofAreaSqm);
-
-  // Search for a matching row
-  final match = data.firstWhere(
-    (row) =>
-        (row['Structure'] as String).toLowerCase() == structure.toLowerCase() &&
-        (row['roofarearange'] as String) == roofRange &&
-        (row['filtertype'] as String).toLowerCase() == filterType.toLowerCase(),
-    orElse: () => {},
-  );
-
-  if (match.isEmpty) return 0.0;
-
-  return (match['totalcost'] as num).toDouble();
-}
-
-/// ---------------- Savings ----------------
-double calculateSavings(double harvestedLiters) {
-  return harvestedLiters * 0.5; // ₹0.5 per liter
-}
-
-/// ---------------- Select Min Cost Filter ----------------
-Future<String> getMinCostFilter(String structure, double roofAreaSqm) async {
-  final data = await loadCostData();
-  String roofRange = getRoofAreaRange(roofAreaSqm);
-
-  final filters = data
-      .where((row) => row['structure'] == structure && row['roofAreaRange'] == roofRange)
-      .toList();
-
-  if (filters.isEmpty) return "Standard Filter";
-
-  filters.sort((a, b) => (a['totalCost'] as num).compareTo(b['totalCost'] as num));
-  return filters.first['filterType'];
-}
-
-/// ---------------- Pipe Unit Cost ----------------
-double getPipeUnitCost(String pipeType) {
-  Map<String, double> pipeCostData = {
-    "PVC": 120,
-    "GI": 300,
-    "HDPE": 150,
+  /// ---------------- Runoff Coefficients ----------------
+  Map<String, double> runoffCoeff = {
+    "GI sheet": 0.90,
+    "Asbestos sheet": 0.80,
+    "Tiled roof": 0.75,
+    "Concrete roof": 0.75,
   };
-  return pipeCostData[pipeType] ?? 150;
-}
 
-/// ---------------- Navigate and Calculate ----------------
-Future<void> _navigateToResult() async {
-  setState(() => _isLoading = true);
+  /// ---------------- Construction Costs ----------------
+  double plainCementConcreteCost = 1500; // Rs/cum
+  double reinforcedCementConcreteCost = 4700; // Rs/cum
 
-  String location = _locationController.text.trim();
-  int dwellers = int.tryParse(_dwellersController.text) ?? 1;
-  double roofAreaSqft = double.tryParse(_roofAreaController.text) ?? 0;
-  double roofAreaM2 = roofAreaSqft * 0.092903;
+  /// ---------------- Plastic Tank Costs ----------------
+  Map<String, double> plasticTankCost = {
+    "Hindustan": 1.80,
+    "Jindal": 1.80,
+    "Storex": 0.75,
+    "Ganga": 0.75,
+  };
 
-  Map<String, dynamic> rainfallData = await _fetchRainfallData(location);
-  double annualRainfall = rainfallData['annual'];
+  /// ---------------- Load Cost Data ----------------
+  Future<List<dynamic>> loadCostData() async {
+    final String response = await rootBundle.loadString(
+      'assets/rrwhcostdata.json',
+    );
+    final Map<String, dynamic> data =
+        json.decode(response) as Map<String, dynamic>;
 
-  double groundwaterLevel = await fetchGroundwaterLevel(location);
-  final aquiferData = await fetchAquiferData(location);
-  String aquiferType = aquiferData?["aquifer"] ?? "Unconfined Aquifer";
-
-  double potentialLiters = calculateWaterHarvested(
-      annualRainfall: annualRainfall, roofAreaSqm: roofAreaM2, roofType: _roofType);
-
-  double annualDemand = dwellers * 135 * 365;
-
-  // ---------------- Select Structure ----------------
-  String structure;
-  if (selectedAssessment == "AR") {
-    double wellDepth = double.tryParse(_wellDepthController.text) ?? 10;
-    double wellDiameter = double.tryParse(_wellDiameterController.text) ?? 1;
-    structure = "AR Well: $wellDepth m depth, $wellDiameter m diameter";
-  } else {
-    if (potentialLiters < 0.5 * annualDemand) {
-      structure = "Small surface tank";
-    } else if (potentialLiters > 4 * annualDemand) {
-      structure = "Large underground tank";
-    } else {
-      structure = "Medium-sized surface tank";
-    }
+    // Extract the list under "Sheet1"
+    final List<dynamic> sheetData = data['Sheet1'] as List<dynamic>;
+    return sheetData;
   }
 
-  // ---------------- Filter ----------------
-  String filterType = await getMinCostFilter(structure, roofAreaM2);
+  /// ---------------- Harvested Water ----------------
+  double calculateWaterHarvested({
+    required double annualRainfall,
+    required double roofAreaSqm,
+    required String roofType,
+  }) {
+    final coeff = runoffCoeff[roofType] ?? 0.75;
+    return (annualRainfall / 1000) * roofAreaSqm * coeff * 1000;
+  }
 
-  // ---------------- Pipe ----------------
-  int numberOfFloors = int.tryParse(_noOfFloors.text) ?? 1;
-String roofShape = _selectedRoofShape ?? "Flat Roof";
-String pipeType = "PVC"; // default, or get from user selection
+  /// ---------------- Roof Area Range ----------------
+  String getRoofAreaRange(double roofAreaSqm) {
+    if (roofAreaSqm <= 100) return "<=100";
+    if (roofAreaSqm <= 1000) return "101-1000";
+    return ">1000";
+  }
 
-double pipeLength = calculatePipeLength(
-    numberOfFloors: numberOfFloors,
-    roofShape: roofShape,
-);
-double pipeCost = calculatePipeCost(
-    totalLength: pipeLength,
-    unitCostPerMeter: getPipeUnitCost(pipeType),
-);
+  /// ---------------- Pipe Length ----------------
+  double calculatePipeLength({
+    required int numberOfFloors,
+    required String roofShape,
+    double verticalPerFloor = 3.5,
+    double horizontalLength = 10.0,
+  }) {
+    double totalLength = numberOfFloors * verticalPerFloor;
+    if (roofShape.toLowerCase() == "sloped") {
+      totalLength += horizontalLength;
+    }
+    return totalLength;
+  }
 
-  // ---------------- Tank ----------------
-  String selectedTankBrand = plasticTankCost.entries
-      .reduce((a, b) => a.value < b.value ? a : b)
-      .key;
-  double tankCost = calculateTankCost(capacityLiters: potentialLiters, brand: selectedTankBrand);
+  /// ---------------- Pipe Cost ----------------
+  double calculatePipeCost({
+    required double totalLength,
+    required double unitCostPerMeter,
+  }) {
+    return totalLength * unitCostPerMeter;
+  }
 
-  // ---------------- Installation & Total ----------------
-  double installationCost = pipeCost + await getEstimatedCost(
-      structure: structure, roofAreaSqm: roofAreaM2, filterType: filterType);
-  double totalCost = tankCost + installationCost;
+  /// ---------------- Concrete Cost ----------------
+  double calculateConcreteCost({required double volumeCum, bool isRCC = true}) {
+    return volumeCum *
+        (isRCC ? reinforcedCementConcreteCost : plainCementConcreteCost);
+  }
 
-  double savings = calculateSavings(potentialLiters);
+  /// ---------------- Plastic Tank Cost ----------------
+  double calculateTankCost({
+    required double capacityLiters,
+    required String brand,
+  }) {
+    final costPerLitre = plasticTankCost[brand] ?? 1.0;
+    return capacityLiters * costPerLitre;
+  }
 
-  setState(() => _isLoading = false);
+  /// ---------------- Filter / Installation Cost ----------------
+  Future<double> getEstimatedCost({
+    required String structure,
+    required double roofAreaSqm,
+    required String filterType,
+  }) async {
+    final data = await loadCostData();
+    String roofRange = getRoofAreaRange(roofAreaSqm);
 
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => ResultPage(
-        annualRainfall: annualRainfall,
-        potentialLiters: potentialLiters,
-        structure: structure,
-        filterType: filterType,
-        pipeType: pipeType,
-        pipeLength: pipeLength,
-        pipeCost: pipeCost,
-        filterCost: installationCost - pipeCost,
-        tankCost: tankCost,
-        installationCost: installationCost,
-        totalCost: totalCost,
-        savings: savings,
-        dwellers: dwellers,
-        roofArea: roofAreaSqft,
-        groundwaterLevel: groundwaterLevel,
-        aquiferType: aquiferType,
-        city: location,
+    // Search for a matching row
+    final match = data.firstWhere(
+      (row) =>
+          (row['Structure'] as String).toLowerCase() ==
+              structure.toLowerCase() &&
+          (row['roofarearange'] as String) == roofRange &&
+          (row['filtertype'] as String).toLowerCase() ==
+              filterType.toLowerCase(),
+      orElse: () => {},
+    );
+
+    if (match.isEmpty) return 0.0;
+
+    return (match['totalcost'] as num).toDouble();
+  }
+
+  /// ---------------- Savings ----------------
+  double calculateSavings(double harvestedLiters) {
+    return harvestedLiters * 0.5; // ₹0.5 per liter
+  }
+
+  /// ---------------- Select Min Cost Filter ----------------
+  // Future<String> getMinCostFilter(String structure, double roofAreaSqm) async {
+  //   final data = await loadCostData();
+  //   String roofRange = getRoofAreaRange(roofAreaSqm);
+
+  //   final filters = data
+  //       .where(
+  //         (row) =>
+  //             row['structure'] == structure &&
+  //             row['roofAreaRange'] == roofRange,
+  //       )
+  //       .toList();
+
+  //   if (filters.isEmpty) return "Mesh Screen Filter";
+
+  //   filters.sort(
+  //     (a, b) => (a['totalCost'] as num).compareTo(b['totalCost'] as num),
+  //   );
+  //   return filters.first['filterType'];
+  // }
+  Future<Map<String, dynamic>> getMinCostFilter(
+    String structure,
+    double roofAreaSqm,
+  ) async {
+    return {"filterType": "Sand Filter", "filterCost": 1000};
+  }
+
+  /// ---------------- Pipe Unit Cost ----------------
+  double getPipeUnitCost(String pipeType) {
+    Map<String, double> pipeCostData = {"PVC": 120, "GI": 300, "HDPE": 150};
+    return pipeCostData[pipeType] ?? 150;
+  }
+
+  /// ---------------- Navigate and Calculate ----------------
+  Future<void> _navigateToResult() async {
+    setState(() => _isLoading = true);
+
+    String location = _locationController.text.trim();
+    int dwellers = int.tryParse(_dwellersController.text) ?? 1;
+    double roofAreaSqft = double.tryParse(_roofAreaController.text) ?? 0;
+    double roofAreaM2 = roofAreaSqft * 0.092903;
+
+    Map<String, dynamic> rainfallData = await _fetchRainfallData(location);
+    double annualRainfall = rainfallData['annual'];
+
+    double groundwaterLevel = await fetchGroundwaterLevel(location);
+    final aquiferData = await fetchAquiferData(location);
+    String aquiferType = aquiferData?["aquifer"] ?? "Unconfined Aquifer";
+
+    double potentialLiters = calculateWaterHarvested(
+      annualRainfall: annualRainfall,
+      roofAreaSqm: roofAreaM2,
+      roofType: _roofType,
+    );
+
+    double annualDemand = dwellers * 135 * 365;
+
+    // ---------------- Select Structure ----------------
+    String structure;
+    if (selectedAssessment == "AR") {
+      double wellDepth = double.tryParse(_wellDepthController.text) ?? 10;
+      double wellDiameter = double.tryParse(_wellDiameterController.text) ?? 1;
+      structure = "AR Well: $wellDepth m depth, $wellDiameter m diameter";
+    } else {
+      if (potentialLiters < 0.5 * annualDemand) {
+        structure = "Small surface tank";
+      } else if (potentialLiters > 4 * annualDemand) {
+        structure = "Large underground tank";
+      } else {
+        structure = "Medium-sized surface tank";
+      }
+    }
+
+    // ---------------- Filter ----------------
+    String filterType = (await getMinCostFilter(
+      structure,
+      roofAreaM2,
+    ))["filterType"];
+
+    // ---------------- Pipe ----------------
+    int numberOfFloors = int.tryParse(_noOfFloors.text) ?? 1;
+    String roofShape = _selectedRoofShape ?? "Flat Roof";
+    String pipeType = "PVC"; // default, or get from user selection
+
+    double pipeLength = calculatePipeLength(
+      numberOfFloors: numberOfFloors,
+      roofShape: roofShape,
+    );
+    double pipeCost = calculatePipeCost(
+      totalLength: pipeLength,
+      unitCostPerMeter: getPipeUnitCost(pipeType),
+    );
+
+    // ---------------- Tank ----------------
+    String selectedTankBrand = plasticTankCost.entries
+        .reduce((a, b) => a.value < b.value ? a : b)
+        .key;
+    double tankCost = calculateTankCost(
+      capacityLiters: potentialLiters,
+      brand: selectedTankBrand,
+    );
+
+    // ---------------- Installation & Total ----------------
+    double installationCost =
+        pipeCost +
+        await getEstimatedCost(
+          structure: structure,
+          roofAreaSqm: roofAreaM2,
+          filterType: filterType,
+        );
+    double totalCost = tankCost + installationCost;
+
+    double savings = calculateSavings(potentialLiters);
+
+    setState(() => _isLoading = false);
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ResultPage(
+          annualRainfall: annualRainfall,
+          potentialLiters: potentialLiters,
+          structure: structure,
+          filterType: "Mesh or screen filter",
+          pipeType: pipeType,
+          pipeLength: pipeLength,
+          pipeCost: pipeCost,
+          filterCost: 1000,
+          tankCost: tankCost,
+          installationCost: installationCost,
+          totalCost: totalCost,
+          savings: savings,
+          dwellers: dwellers,
+          roofArea: roofAreaSqft,
+          groundwaterLevel: groundwaterLevel,
+          aquiferType: aquiferType,
+          city: location,
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Future<Map<String, dynamic>> _fetchRainfallData(String location) async {
     try {
@@ -504,256 +534,6 @@ double pipeCost = calculatePipeCost(
     }
 
     return null;
-  }
-
-  Widget _buildExpandableSelector({
-    required String title,
-    required IconData icon,
-    required List<Map<String, String>> options,
-    required String? selectedValue,
-    required bool isExpanded,
-    required VoidCallback onToggle,
-    required ValueChanged<String?> onChanged,
-  }) {
-    final crossAxisCount = 2; // 2 items per row
-
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      decoration: BoxDecoration(
-        color: Theme.of(context).inputDecorationTheme.fillColor ?? Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: Theme.of(context).primaryColor, // ✅ same as text selector
-          width: 1.5,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          GestureDetector(
-            onTap: onToggle,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Icon(icon, color: Theme.of(context).primaryColor),
-                    const SizedBox(width: 8),
-                    Text(
-                      selectedValue ?? title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-                AnimatedRotation(
-                  turns: isExpanded ? 0.5 : 0.0,
-                  duration: const Duration(milliseconds: 300),
-                  child: Icon(
-                    Icons.keyboard_arrow_down,
-                    color: Theme.of(context).primaryColor,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            child: isExpanded
-                ? Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: options.length,
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: crossAxisCount,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: 1.0, // square cells
-                      ),
-                      itemBuilder: (context, index) {
-                        final option = options[index];
-
-                        final isSelected = selectedValue == option['value'];
-
-                        return GestureDetector(
-                          onTap: () {
-                            onChanged(option['value']);
-                            onToggle();
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color:
-                                  Theme.of(
-                                    context,
-                                  ).inputDecorationTheme.fillColor ??
-                                  Colors.white,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: isSelected
-                                    ? Theme.of(context).colorScheme.secondary
-                                    : Theme.of(context).primaryColor,
-                                width: isSelected ? 2 : 1.5,
-                              ),
-                            ),
-                            child: Column(
-                              children: [
-                                Expanded(
-                                  child:
-                                      option['image'] != null &&
-                                          option['image']!.isNotEmpty
-                                      ? ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                            14,
-                                          ),
-                                          child: Image.asset(
-                                            option['image']!,
-                                            width: double.infinity,
-                                            height: double.infinity,
-                                            fit: BoxFit.cover,
-                                          ),
-                                        )
-                                      : Center(
-                                          child: Text(
-                                            option['label'] ?? option['value']!,
-                                            textAlign: TextAlign.center,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w500,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                        ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  option['label'] ?? option['value']!,
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  )
-                : const SizedBox.shrink(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTextExpandableSelector({
-    required String title,
-    required IconData icon,
-    required List<Map<String, String>> options,
-    required String? selectedValue,
-    required bool isExpanded,
-    required VoidCallback onToggle,
-    required ValueChanged<String?> onChanged,
-  }) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      decoration: BoxDecoration(
-        color: Theme.of(context).inputDecorationTheme.fillColor ?? Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: Theme.of(context).primaryColor, // ✅ same as TextFormField
-          width: 1.5,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          GestureDetector(
-            onTap: onToggle,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Icon(icon, color: Theme.of(context).primaryColor),
-                    const SizedBox(width: 8),
-                    Text(
-                      selectedValue ?? title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-                AnimatedRotation(
-                  turns: isExpanded ? 0.5 : 0.0,
-                  duration: const Duration(milliseconds: 300),
-                  child: Icon(
-                    Icons.keyboard_arrow_down,
-                    color: Theme.of(context).primaryColor,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            child: isExpanded
-                ? Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Column(
-                      children: options.map((option) {
-                        final isSelected = selectedValue == option['value'];
-                        return Container(
-                          margin: const EdgeInsets.symmetric(vertical: 6),
-                          decoration: BoxDecoration(
-                            color:
-                                Theme.of(
-                                  context,
-                                ).inputDecorationTheme.fillColor ??
-                                Colors.white,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: isSelected
-                                  ? Theme.of(context).colorScheme.secondary
-                                  : Theme.of(context).primaryColor,
-                              width: isSelected ? 2 : 1.5,
-                            ),
-                          ),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 4,
-                            ),
-                            title: Text(
-                              option['label'] ?? option['value']!,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            onTap: () {
-                              onChanged(option['value']);
-                              onToggle(); // auto-collapse
-                            },
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  )
-                : const SizedBox.shrink(),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -885,9 +665,9 @@ double pipeCost = calculatePipeCost(
             borderRadius: BorderRadius.circular(20),
           ),
           elevation: 10,
-          margin: const EdgeInsets.all(16),
+          margin: const EdgeInsets.all(10),
           child: Padding(
-            padding: const EdgeInsets.all(28.0),
+            padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
                 Icon(
@@ -948,7 +728,8 @@ double pipeCost = calculatePipeCost(
                   ),
                 ),
                 const SizedBox(height: 16),
-                _buildTextExpandableSelector(
+                buildTextExpandableSelector(
+                  context: context,
                   title: 'Select Location Type',
                   icon: Icons.location_city,
                   options: _locationTypeOptions,
@@ -1004,7 +785,8 @@ double pipeCost = calculatePipeCost(
                             Expanded(
                               child: Column(
                                 children: [
-                                  _buildExpandableSelector(
+                                  buildExpandableSelector(
+                                    context: context,
                                     title: 'Select Roof Shape',
                                     icon: Icons.home,
                                     options: _rooftopOptions,
@@ -1020,7 +802,8 @@ double pipeCost = calculatePipeCost(
                                     ),
                                   ),
 
-                                  _buildTextExpandableSelector(
+                                  buildTextExpandableSelector(
+                                    context: context,
                                     title: 'Select Roof Material',
                                     icon: Icons.roofing,
                                     options: _roofTypeOptions,
@@ -1035,7 +818,8 @@ double pipeCost = calculatePipeCost(
                                     ),
                                   ),
 
-                                  _buildExpandableSelector(
+                                  buildExpandableSelector(
+                                    context: context,
                                     title: 'Select Filter Type',
                                     icon: Icons.filter_alt,
                                     options: _filterOptions,
@@ -1089,7 +873,8 @@ double pipeCost = calculatePipeCost(
                         )
                       : Column(
                           children: [
-                            _buildExpandableSelector(
+                            buildExpandableSelector(
+                              context: context,
                               title: 'Select Roof Shape',
                               icon: Icons.home,
                               options: _rooftopOptions,
@@ -1122,7 +907,8 @@ double pipeCost = calculatePipeCost(
                               icon: Icons.business,
                             ),
 
-                            _buildTextExpandableSelector(
+                            buildTextExpandableSelector(
+                              context: context,
                               title: 'Select Roof Material',
                               icon: Icons.roofing,
                               options: _roofTypeOptions,
@@ -1136,7 +922,8 @@ double pipeCost = calculatePipeCost(
                                 () => _roofType = value ?? "concrete",
                               ),
                             ),
-                            _buildExpandableSelector(
+                            buildExpandableSelector(
+                              context: context,
                               title: 'Select Filter Type',
                               icon: Icons.filter_alt,
                               options: _filterOptions,
@@ -1204,7 +991,8 @@ double pipeCost = calculatePipeCost(
                         icon: Icons.circle,
                       ),
                       const SizedBox(height: 8),
-                      _buildTextExpandableSelector(
+                      buildTextExpandableSelector(
+                        context: context,
                         title: 'Select Soil Type',
                         icon: Icons.landscape,
                         options: [
