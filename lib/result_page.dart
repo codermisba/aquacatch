@@ -14,7 +14,14 @@ class ResultPage extends StatefulWidget {
   final double annualRainfall;
   final double potentialLiters;
   final String structure;
-  final double cost;
+  final String filterType;
+  final String pipeType;
+  final double pipeLength;
+  final double pipeCost;
+  final double filterCost;
+  final double tankCost;
+  final double installationCost;
+  final double totalCost;
   final double savings;
   final int dwellers;
   final double roofArea;
@@ -27,7 +34,14 @@ class ResultPage extends StatefulWidget {
     required this.annualRainfall,
     required this.potentialLiters,
     required this.structure,
-    required this.cost,
+    required this.filterType,
+    required this.pipeType,
+    required this.pipeLength,
+    required this.pipeCost,
+    required this.filterCost,
+    required this.tankCost,
+    required this.installationCost,
+    required this.totalCost,
     required this.savings,
     required this.dwellers,
     required this.roofArea,
@@ -88,65 +102,79 @@ class _ResultPageState extends State<ResultPage> {
 
   // ---------------- Generate detailed AI report ----------------
   Future<String> generateDetailedReport() async {
-    String prompt =
-        """
-You are AquaBot, a water harvesting expert. Generate a professional, detailed water harvesting report for a household with these details:
+  String prompt = """
+You are AquaBot, a water harvesting expert. Generate a professional, detailed water harvesting report for a household strictly using the given values. 
 
+### Household Details (use only these values):
 - Annual Rainfall: ${widget.annualRainfall} mm
-- Potential Water Harvested: ${widget.potentialLiters} L
-- Structure: ${widget.structure}
-- Number of Dwellers: ${widget.dwellers}
 - Roof Area: ${widget.roofArea} m²
+- Potential Water Harvested: ${widget.potentialLiters} L
+- Structure Type: ${widget.structure}
+- Filter Type: ${widget.filterType}
+- Pipe Type: ${widget.pipeType}
+- Pipe Length: ${widget.pipeLength} m
+- Pipe Cost: ₹${widget.pipeCost.toStringAsFixed(0)}
+- Filter Cost: ₹${widget.filterCost.toStringAsFixed(0)}
+- Tank Cost: ₹${widget.tankCost.toStringAsFixed(0)}
+- Installation Cost: ₹${widget.installationCost.toStringAsFixed(0)}
+- Total Cost: ₹${widget.totalCost.toStringAsFixed(0)}
+- Expected Savings: ₹${widget.savings.toStringAsFixed(0)} per year
+- Number of Dwellers: ${widget.dwellers}
 - Groundwater Level: ${widget.groundwaterLevel} m
 - Aquifer Type: ${widget.aquiferType}
 - City: ${widget.city}
 
-### Instructions:
-1. Calculate estimated costs dynamically based on the structure type and size.
-2. Suggest expected savings (₹ per year).
-3. Generate a comparison **Cost Estimation Table** for different filter options, including:
-   - Structure Type
-   - Approx. Cost (₹)
-   - Expected Lifespan
-   - Maintenance Level
-4. Recommend the most cost-effective option for this case.
+### Instructions for the report:
+1. **Use ONLY the given values** for all costs, savings, and dimensions. Do not assume or generate new numeric values.  
+2. Format the report in strict markdown with the following headings:
+   - # Overview
+   - # Cost Estimation
+   - # Water Savings
+   - # Groundwater & Soil
+   - # Environmental Impact
+   - # Recommendations
+3. Include a **Cost Estimation Table** comparing filter options if relevant, but use only the provided costs.  
+4. Clearly highlight the recommended structure and its benefits.  
+5. Provide practical suggestions for maximizing rainwater harvesting efficiency.  
+6. Use bullet points, subheadings, and tables where appropriate for clarity.
 
-Use markdown headings:
-- Overview
-- Cost Estimation
-- Water Savings
-- Groundwater & Soil
-- Environmental Impact
-- Recommendations
+Strictly adhere to the given values. Do not make assumptions.
 """;
 
-    return await getBotResponseHF(prompt);
-  }
+  return await getBotResponseHF(prompt);
+}
 
   // ---------------- Save to Firestore ----------------
   Future<void> saveResultToFirebase(String detailedReport) async {
-    final user = FirebaseAuth.instance.currentUser;
+  final user = FirebaseAuth.instance.currentUser;
 
-    if (user == null) return;
+  if (user == null) return;
 
-    final resultData = {
-      "annualRainfall": widget.annualRainfall,
-      "potentialLiters": widget.potentialLiters,
-      "structure": widget.structure,
-      "cost": widget.cost,
-      "savings": widget.savings,
-      "dwellers": widget.dwellers,
-      "roofArea": widget.roofArea,
-      "groundwaterLevel": widget.groundwaterLevel,
-      "aquiferType": widget.aquiferType,
-      "city": widget.city,
-      "detailedReport": detailedReport,
-      "timestamp": FieldValue.serverTimestamp(),
-      "userId": user.uid,
-    };
+  final resultData = {
+    "annualRainfall": widget.annualRainfall,
+    "potentialLiters": widget.potentialLiters,
+    "structure": widget.structure,
+    "filterType": widget.filterType,
+    "pipeType": widget.pipeType,
+    "pipeLength": widget.pipeLength,
+    "pipeCost": widget.pipeCost,
+    "filterCost": widget.filterCost,
+    "tankCost": widget.tankCost,
+    "installationCost": widget.installationCost,
+    "totalCost": widget.totalCost,
+    "savings": widget.savings,
+    "dwellers": widget.dwellers,
+    "roofArea": widget.roofArea,
+    "groundwaterLevel": widget.groundwaterLevel,
+    "aquiferType": widget.aquiferType,
+    "city": widget.city,
+    "detailedReport": detailedReport,
+    "timestamp": FieldValue.serverTimestamp(),
+    "userId": user.uid,
+  };
 
-    await FirebaseFirestore.instance.collection("results").add(resultData);
-  }
+  await FirebaseFirestore.instance.collection("results").add(resultData);
+}
 
   Future<void> generatePdf(String detailedReport) async {
     final pdf = pw.Document();
@@ -470,11 +498,37 @@ Use markdown headings:
                     ),
                     _infoRow(
                       "Estimated Cost:",
-                      "₹${widget.cost.toStringAsFixed(0)}",
+                      "₹${widget.totalCost.toStringAsFixed(0)}",
                     ),
                     _infoRow(
                       "Expected Savings:",
                       "₹${widget.savings.toStringAsFixed(0)}",
+                    ),
+                    _infoRow("Filter Type:", widget.filterType),
+                    _infoRow("Pipe Type:", widget.pipeType),
+                    _infoRow(
+                      "Pipe Length:",
+                      "${widget.pipeLength.toStringAsFixed(1)} m",
+                    ),
+                    _infoRow(
+                      "Pipe Cost:",
+                      "₹${widget.pipeCost.toStringAsFixed(0)}",
+                    ),
+                    _infoRow(
+                      "Filter Cost:",
+                      "₹${widget.filterCost.toStringAsFixed(0)}",
+                    ),
+                    _infoRow(
+                      "Tank Cost:",
+                      "₹${widget.tankCost.toStringAsFixed(0)}",
+                    ),
+                    _infoRow(
+                      "Installation Cost:",
+                      "₹${widget.installationCost.toStringAsFixed(0)}",
+                    ),
+                    _infoRow(
+                      "Total Cost:",
+                      "₹${widget.totalCost.toStringAsFixed(0)}",
                     ),
                   ],
                 ),

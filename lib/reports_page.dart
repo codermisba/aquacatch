@@ -1,9 +1,7 @@
 import 'dart:typed_data';
-// import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-// import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -17,9 +15,8 @@ class ReportsPage extends StatefulWidget {
 }
 
 class _ReportsPageState extends State<ReportsPage> {
-  final CollectionReference reportsRef = FirebaseFirestore.instance.collection(
-    "results",
-  );
+  final CollectionReference reportsRef =
+      FirebaseFirestore.instance.collection("results");
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +34,7 @@ class _ReportsPageState extends State<ReportsPage> {
             ),
             elevation: 3,
             child: Padding(
-              padding: EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(16.0),
               child: Row(
                 children: [
                   Icon(
@@ -45,11 +42,11 @@ class _ReportsPageState extends State<ReportsPage> {
                     size: 40,
                     color: Theme.of(context).primaryColor,
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                      children: const [
                         Text(
                           'Your Assessment Reports',
                           style: TextStyle(
@@ -57,6 +54,7 @@ class _ReportsPageState extends State<ReportsPage> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+                        SizedBox(height: 4),
                         Text(
                           'View, download and share your Rooftop Rain Water Harvesting reports',
                           style: TextStyle(color: Colors.grey),
@@ -70,16 +68,22 @@ class _ReportsPageState extends State<ReportsPage> {
           ),
           const SizedBox(height: 20),
 
+          // Reports List
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: reportsRef
+                  .where('userId', isEqualTo: user?.uid)
                   .orderBy("timestamp", descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting)
+                if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
-                if (snapshot.hasError)
+                }
+
+                if (snapshot.hasError) {
                   return Center(child: Text('Error: ${snapshot.error}'));
+                }
+
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return const Center(
                     child: Column(
@@ -110,14 +114,7 @@ class _ReportsPageState extends State<ReportsPage> {
                   );
                 }
 
-                // Filter reports: old (no userId) + current user's
-                final reports = snapshot.data!.docs.where((doc) {
-                  // If userId exists, check if it matches current user
-                  // If it doesn't exist (old reports), include it
-                  final data = doc.data() as Map<String, dynamic>;
-                  return !data.containsKey('userId') ||
-                      data['userId'] == user?.uid;
-                }).toList();
+                final reports = snapshot.data!.docs;
 
                 return ListView.builder(
                   itemCount: reports.length,
@@ -126,9 +123,8 @@ class _ReportsPageState extends State<ReportsPage> {
                     final timestamp = report['timestamp'] != null
                         ? (report['timestamp'] as Timestamp).toDate()
                         : DateTime.now();
-                    final formattedDate = DateFormat(
-                      'dd MMM yyyy, hh:mm a',
-                    ).format(timestamp);
+                    final formattedDate =
+                        DateFormat('dd MMM yyyy, hh:mm a').format(timestamp);
 
                     return Card(
                       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -146,29 +142,29 @@ class _ReportsPageState extends State<ReportsPage> {
                           onSelected: (value) async {
                             if (value == 'view') {
                               Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ResultPage(
-                                    annualRainfall:
-                                        (report['annualRainfall'] as num)
-                                            .toDouble(),
-                                    potentialLiters:
-                                        (report['potentialLiters'] as num)
-                                            .toDouble(),
-                                    structure: report['structure'],
-                                    cost: (report['cost'] as num).toDouble(),
-                                    savings: (report['savings'] as num)
-                                        .toDouble(),
-                                    dwellers: report['dwellers'],
-                                    roofArea: (report['roofArea'] as num)
-                                        .toDouble(),
-                                    groundwaterLevel:
-                                        (report['groundwaterLevel'] as num)
-                                            .toDouble(),
-                                    aquiferType: report['aquiferType'] ?? '',
-                                  ),
-                                ),
-                              );
+  context,
+  MaterialPageRoute(
+    builder: (context) => ResultPage(
+      annualRainfall: (report['annualRainfall'] as num).toDouble(),
+      potentialLiters: (report['potentialLiters'] as num).toDouble(),
+      structure: report['structure'],
+      totalCost: (report['cost'] as num).toDouble(),
+      savings: (report['savings'] as num).toDouble(),
+      dwellers: report['dwellers'],
+      roofArea: (report['roofArea'] as num).toDouble(),
+      groundwaterLevel: (report['groundwaterLevel'] as num).toDouble(),
+      aquiferType: report['aquiferType'] ?? '',
+      filterType: report['filterType'] ?? '',
+      pipeType: report['pipeType'] ?? '',
+      pipeLength: (report['pipeLength'] as num?)?.toDouble() ?? 0.0,
+      pipeCost: (report['pipeCost'] as num?)?.toDouble() ?? 0.0,
+      filterCost: (report['filterCost'] as num?)?.toDouble() ?? 0.0,
+      tankCost: (report['tankCost'] as num?)?.toDouble() ?? 0.0,
+      installationCost: (report['installationCost'] as num?)?.toDouble() ?? 0.0,
+    ),
+  ),
+);
+
                             } else if (value == 'download') {
                               await _generatePdf(report);
                             } else if (value == 'share') {
@@ -178,9 +174,7 @@ class _ReportsPageState extends State<ReportsPage> {
                           itemBuilder: (context) => const [
                             PopupMenuItem(value: 'view', child: Text('View')),
                             PopupMenuItem(
-                              value: 'download',
-                              child: Text('Download'),
-                            ),
+                                value: 'download', child: Text('Download')),
                             PopupMenuItem(value: 'share', child: Text('Share')),
                           ],
                         ),
@@ -196,6 +190,7 @@ class _ReportsPageState extends State<ReportsPage> {
     );
   }
 
+  // PDF generation function
   Future<void> _generatePdf(QueryDocumentSnapshot report) async {
     final pdf = pw.Document();
 
@@ -209,7 +204,10 @@ class _ReportsPageState extends State<ReportsPage> {
           children: [
             pw.Text(
               'Water Harvesting Report',
-              style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+              style: pw.TextStyle(
+                fontSize: 24,
+                fontWeight: pw.FontWeight.bold,
+              ),
             ),
             pw.SizedBox(height: 16),
             pw.Text('Structure: ${report['structure']}'),
@@ -229,7 +227,10 @@ class _ReportsPageState extends State<ReportsPage> {
             pw.SizedBox(height: 16),
             pw.Text(
               'Detailed AI Report',
-              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+              style: pw.TextStyle(
+                fontSize: 18,
+                fontWeight: pw.FontWeight.bold,
+              ),
             ),
             pw.SizedBox(height: 8),
             pw.Text(detailedReport, style: const pw.TextStyle(fontSize: 12)),
@@ -238,10 +239,7 @@ class _ReportsPageState extends State<ReportsPage> {
       ),
     );
 
-    // Save PDF as bytes
     final Uint8List bytes = await pdf.save();
-
-    // ✅ For web: triggers print/save dialog
     await Printing.sharePdf(
       bytes: bytes,
       filename: 'Water_Harvesting_Report.pdf',
