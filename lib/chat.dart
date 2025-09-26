@@ -40,7 +40,8 @@ class _ChatPageState extends State<ChatPage> {
         },
         {"role": "user", "content": userInput},
       ],
-      "parameters": {"temperature": 0.7, "max_new_tokens": 200},
+      "temperature": 0.7,
+  "max_tokens": 200,
     };
 
     try {
