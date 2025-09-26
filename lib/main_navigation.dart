@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:aquacatch/main.dart';
 import 'home_screen.dart';
+import 'reports_page.dart';
 import 'assesment_page.dart';
 import 'profile_page.dart';
 import 'theme.dart';
@@ -57,6 +58,7 @@ class _MainNavigationState extends State<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
+    // ignore: deprecated_member_use
     return WillPopScope(
       onWillPop: () async {
         if (_selectedIndex != 0) {
@@ -167,55 +169,3 @@ class _MainNavigationState extends State<MainNavigation> {
 }
 
 /// ----------------- Reports Page -----------------
-class ReportsPage extends StatelessWidget {
-  const ReportsPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.insert_drive_file_rounded,
-              size: 100,
-              color: Colors.grey[400],
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'No Reports Yet',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Complete an assessment to\ngenerate your first report!',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 30),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 14,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                backgroundColor: primaryColor,
-              ),
-              onPressed: () {},
-              icon: const Icon(Icons.add_chart, color: Colors.white),
-              label: const Text(
-                "Start Assessment",
-                style: TextStyle(fontSize: 16, color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

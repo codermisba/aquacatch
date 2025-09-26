@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 //import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:http/http.dart' as http;
 import 'package:pdf/pdf.dart';
@@ -19,7 +20,6 @@ class ResultPage extends StatefulWidget {
   final double pipeLength;
   final double pipeCost;
   final double filterCost;
-  final double tankCost;
   final double installationCost;
   final double totalCost;
   final double savings;
@@ -29,8 +29,7 @@ class ResultPage extends StatefulWidget {
   final String aquiferType;
   final String city;
 
-  const ResultPage({
-    super.key,
+  const ResultPage({super.key, 
     required this.annualRainfall,
     required this.potentialLiters,
     required this.structure,
@@ -39,7 +38,6 @@ class ResultPage extends StatefulWidget {
     required this.pipeLength,
     required this.pipeCost,
     required this.filterCost,
-    required this.tankCost,
     required this.installationCost,
     required this.totalCost,
     required this.savings,
@@ -47,8 +45,9 @@ class ResultPage extends StatefulWidget {
     required this.roofArea,
     required this.groundwaterLevel,
     required this.aquiferType,
-    this.city = "Unknown City",
+    required this.city,
   });
+
 
   @override
   State<ResultPage> createState() => _ResultPageState();
@@ -65,26 +64,18 @@ class _ResultPageState extends State<ResultPage> {
     _detailedReportFuture = generateDetailedReport();
   }
 
-  String cleanMarkdownForUI(String markdown) {
-    return markdown
-        .replaceAll(RegExp(r'#+\s*'), '') // removes any #, ##, ### etc.
-        .replaceAll(RegExp(r'\*\*'), '') // remove bold markers
-        .replaceAll(
-          RegExp(r'^\s*-\s*', multiLine: true),
-          '• ',
-        ); // keep bullets neat
-  }
-
   // ---------------- Hugging Face call ----------------
   Future<String> getBotResponseHF(String prompt) async {
     final url = Uri.parse("https://router.huggingface.co/v1/chat/completions");
     final payload = {
-      "model": hfModel,
-      "messages": [
-        {"role": "user", "content": prompt},
-      ],
-      "parameters": {"temperature": 0.7, "max_new_tokens": 600},
-    };
+  "model": hfModel,
+  "messages": [
+    {"role": "user", "content": prompt},
+  ],
+  "temperature": 0.7,
+  "max_tokens": 2000,  // Use max_tokens instead of max_new_tokens
+};
+
 
     try {
       final response = await http.post(
@@ -114,9 +105,9 @@ class _ResultPageState extends State<ResultPage> {
   Future<String> generateDetailedReport() async {
     String prompt =
         """
-You are AquaBot, a water harvesting expert. Generate a professional, detailed water harvesting report for a household strictly using the given values. 
+You are AquaBot, a water harvesting expert. Generate a professional, detailed water harvesting report strictly using the given values. 
 
- Household Details (use only these values):
+ Provided Details (use only these values):
 - Annual Rainfall: ${widget.annualRainfall} mm
 - Roof Area: ${widget.roofArea} m²
 - Potential Water Harvested: ${widget.potentialLiters} L
@@ -126,7 +117,6 @@ You are AquaBot, a water harvesting expert. Generate a professional, detailed wa
 - Pipe Length: ${widget.pipeLength} m
 - Pipe Cost: ₹${widget.pipeCost.toStringAsFixed(0)}
 - Filter Cost: ₹${widget.filterCost.toStringAsFixed(0)}
-- Tank Cost: ₹${widget.tankCost.toStringAsFixed(0)}
 - Installation Cost: ₹${widget.installationCost.toStringAsFixed(0)}
 - Total Cost: ₹${widget.totalCost.toStringAsFixed(0)}
 - Expected Savings: ₹${widget.savings.toStringAsFixed(0)} per year
@@ -137,7 +127,7 @@ You are AquaBot, a water harvesting expert. Generate a professional, detailed wa
 
 ### Instructions for the report:
 1. **Use ONLY the given values** for all costs, savings, and dimensions. Do not assume or generate new numeric values.  
-2. Format the report in strict markdown with the following headings:
+2. Format the report in with the following headings:
    -  Overview
    -  Cost Estimation
    -  Water Savings
@@ -170,7 +160,6 @@ Strictly adhere to the given values. Do not make assumptions.
       "pipeLength": widget.pipeLength,
       "pipeCost": widget.pipeCost,
       "filterCost": widget.filterCost,
-      "tankCost": widget.tankCost,
       "installationCost": widget.installationCost,
       "totalCost": widget.totalCost,
       "savings": widget.savings,
@@ -381,31 +370,40 @@ Strictly adhere to the given values. Do not make assumptions.
   }
 
   // ---------------- Utility ----------------
-  String getStructureLabel() {
-    switch (widget.structure.toLowerCase()) {
-      case "small surface tank":
-        return "Small Rooftop Tank";
-      case "medium-sized surface tank":
-        return "Medium Surface Tank";
-      case "large underground tank":
-        return "Large Underground Tank";
-      default:
-        return "No Harvesting Needed";
-    }
+ String getStructureLabel() {
+  switch (widget.structure.toLowerCase()) {
+    case "arsurface":
+      return "Artificial Recharge Structure";
+    case "smallsurface":
+      return "Small Surface Tank";
+    case "smallmediumsurface":
+      return "Small-Medium Surface Tank";
+    case "mediumsurface":
+      return "Medium Surface Tank";
+    case "largesurface":
+      return "Large Surface Tank";
+    default:
+      return widget.structure; // fallback
   }
+}
 
-  String getStructureImage() {
-    switch (widget.structure.toLowerCase()) {
-      case "small surface tank":
-        return "assets/images/small.png";
-      case "medium-sized surface tank":
-        return "assets/images/medium.jpg";
-      case "large underground tank":
-        return "assets/images/large.jpg";
-      default:
-        return "assets/images/no_harvesting.png";
-    }
+String getStructureImage() {
+  switch (widget.structure.toLowerCase()) {
+    case "arsurface":
+      return "assets/images/ar.png";
+    case "smallsurface":
+      return "assets/images/small.png";
+    case "smallmediumsurface":
+      return "assets/images/medium.jpg"; // 🔑 add image for this
+    case "mediumsurface":
+      return "assets/images/medium.jpg";
+    case "largesurface":
+      return "assets/images/large.jpg";
+    default:
+      return "assets/images/small.png";
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -508,10 +506,6 @@ Strictly adhere to the given values. Do not make assumptions.
                           : "No",
                     ),
                     _infoRow(
-                      "Estimated Cost:",
-                      "₹${widget.totalCost.toStringAsFixed(0)}",
-                    ),
-                    _infoRow(
                       "Expected Savings:",
                       "₹${widget.savings.toStringAsFixed(0)}",
                     ),
@@ -530,10 +524,6 @@ Strictly adhere to the given values. Do not make assumptions.
                       "₹${widget.filterCost.toStringAsFixed(0)}",
                     ),
                     _infoRow(
-                      "Tank Cost:",
-                      "₹${widget.tankCost.toStringAsFixed(0)}",
-                    ),
-                    _infoRow(
                       "Installation Cost:",
                       "₹${widget.installationCost.toStringAsFixed(0)}",
                     ),
@@ -546,9 +536,7 @@ Strictly adhere to the given values. Do not make assumptions.
               ),
             ),
             const SizedBox(height: 16),
-
-            // Detailed Report (Markdown)
-            FutureBuilder<String>(
+           FutureBuilder<String>(
               future: _detailedReportFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -583,9 +571,28 @@ Strictly adhere to the given values. Do not make assumptions.
                           ),
                         ),
                         const SizedBox(height: 12),
-                        Text(
-                          cleanMarkdownForUI(snapshot.data!),
-                          style: const TextStyle(fontSize: 14),
+                        MarkdownBody(
+                          data:snapshot.data!,
+                          selectable: true,
+                          styleSheet:
+                              MarkdownStyleSheet.fromTheme(
+                                Theme.of(context),
+                              ).copyWith(
+                                tableColumnWidth: const IntrinsicColumnWidth(),
+                                tableCellsPadding: const EdgeInsets.all(6),
+                                p: const TextStyle(fontSize: 14),
+                                h1: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                h2: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                strong: TextStyle(
+                                  color: Theme.of(context).primaryColor,
+                                ),
+                              ),
                         ),
                       ],
                     ),
@@ -682,4 +689,27 @@ Strictly adhere to the given values. Do not make assumptions.
       ),
     );
   }
+}
+
+/// Cleans Hugging Face Markdown minimally for Flutter UI
+String cleanMarkdownForUI(String markdown) {
+  return markdown
+      // Normalize line endings
+      .replaceAll('\r\n', '\n')
+      .replaceAll('\r', '\n')
+      // Ensure headings start at the first column
+      .split('\n')
+      .map((line) {
+        String trimmed = line.trimRight();
+        // Fix divider lines: at least 3 dashes
+        if (trimmed.replaceAll('-', '').trim().isEmpty) {
+          return '--';
+        }
+        // Remove zero-width characters Hugging Face may add
+        return trimmed.replaceAll(RegExp(r'[\u200B-\u200D\uFEFF]'), '');
+      })
+      .join('\n')
+      // Reduce multiple blank lines
+      .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+      .trim();
 }

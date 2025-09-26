@@ -220,8 +220,8 @@ class _HomeScreenState extends State<HomeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _buildStatBox("Past Assessments", "12", Icons.history, Colors.blue),
-            _buildStatBox("Reports", "5", Icons.description, Colors.green),
+            _buildStatBox("Water saved/L ",  waterSaved.toStringAsFixed(0), Icons.description, Colors.blue),
+            _buildStatBox("Reports",  reportCount.toString(), Icons.history, Colors.green),
           ],
         ),
       ],
