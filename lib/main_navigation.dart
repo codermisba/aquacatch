@@ -107,6 +107,16 @@ class _MainNavigationState extends State<MainNavigation> {
                 )
               : null,
           actions: [
+            if (_selectedIndex == 0) // ✅ Show only on HomeScreen
+              IconButton(
+                icon: const Icon(Icons.notifications),
+                onPressed: () {
+                  // TODO: Navigate to Notification Page or show Snackbar
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("No new notifications")),
+                  );
+                },
+              ),
             IconButton(
               icon: Icon(
                 Theme.of(context).brightness == Brightness.dark
