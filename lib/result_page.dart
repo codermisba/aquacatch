@@ -608,7 +608,7 @@ String getStructureImage() {
                 Expanded(
                   child: ElevatedButton.icon(
                     icon: const Icon(Icons.edit),
-                    label: const Text("Edit", style: TextStyle(fontSize: 16)),
+                    label: const Text("Edit Inputs", style: TextStyle(fontSize: 16)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).primaryColor,
                     ),

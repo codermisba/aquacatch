@@ -275,7 +275,7 @@ Future<void> _navigateToResult() async {
   // structure selection
   String structureKey;
  if (selectedAssessment == "AR") {
-    double porosity = 0.35; // assume porosity
+    double porosity = 0.45; // assume porosity
     double runoffCoeffAR = runoffCoeff[_roofType.toLowerCase()] ?? 0.75;
 
     double rechargeLiters =
@@ -487,27 +487,27 @@ Map<String, double> getDefaultCosts(String structureKey) {
     case "smallsurface":
       return {
         "installation": 2000,
-        "filter": 1000,
+        "filter": 10000,
       };
     case "smallmediumsurface":
       return {
         "installation": 4000,
-        "filter": 1500,
+        "filter": 15000,
       };
     case "mediumsurface":
       return {
         "installation": 6000,
-        "filter": 2000,
+        "filter": 25000,
       };
     case "largesurface":
       return {
         "installation": 10000,
-        "filter": 3000,
+        "filter": 30000,
       };
     case "arsurface":
       return {
         "installation": 8000,
-        "filter": 2500,
+        "filter": 20000,
       };
     default:
       return {
