@@ -125,101 +125,34 @@ class _HomeScreenState extends State<HomeScreen> {
                   textAlign: TextAlign.center,
                 ),
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start, // align at top
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
                 children: [
-                  Expanded(
-                    child: Container(
-                      margin: const EdgeInsets.all(8),
-                      child: InkWell(
-                        onTap: () => _launchURL('https://cgwb.gov.in/'),
-                        borderRadius: BorderRadius.circular(16),
-                        child: Ink(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).cardColor,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 5,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: SizedBox(
-                            height: 120,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                ClipOval(
-                                  child: Image.asset(
-                                    "assets/images/CGWB_logo.jpg",
-                                    height: 60,
-                                    width: 60,
-                                    fit: BoxFit.cover, // fills the circle
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                const Text(
-                                  "Central Ground Water Board",
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(fontSize: 14, height: 1.4),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+                  _buildInfoCard(
+                    context,
+                    "assets/images/CGWB_logo.jpg",
+                    "Central Ground Water Board",
+                    "https://cgwb.gov.in/",
                   ),
-                  Expanded(
-                    child: Container(
-                      margin: const EdgeInsets.all(8),
-                      child: InkWell(
-                        onTap: () =>
-                            _launchURL('https://www.jalshakti-dowr.gov.in/'),
-                        borderRadius: BorderRadius.circular(16),
-                        child: Ink(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).cardColor,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 5,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: SizedBox(
-                            height: 120,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                ClipOval(
-                                  child: Image.asset(
-                                    "assets/images/jalshakty.png",
-                                    height: 60,
-                                    width: 60,
-                                    fit: BoxFit
-                                        .cover, // cover ensures it fills the circle
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                const Text(
-                                  "Ministry of JalShakti.",
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(fontSize: 14, height: 1.4),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+                  _buildInfoCard(
+                    context,
+                    "assets/images/jalshakty.png",
+                    "Ministry of Jal Shakti",
+                    "https://www.jalshakti-dowr.gov.in/",
+                  ),
+                  _buildInfoCard(
+                    context,
+                    "assets/images/indiawris_logo.jpg",
+                    "India WRIS",
+                    "https://indiawris.gov.in/",
+                  ),
+                  _buildInfoCard(
+                    context,
+                    "assets/images/nwic.png",
+                    "National Water Informatics Centre",
+                    "https://nwic.gov.in/",
                   ),
                 ],
               ),
@@ -233,6 +166,56 @@ class _HomeScreenState extends State<HomeScreen> {
 
   //chatbot button
   bool _showTooltip = true;
+ Widget _buildInfoCard(
+  BuildContext context,
+  String imagePath,
+  String title,
+  String url,
+) {
+  return SizedBox(
+    width: MediaQuery.of(context).size.width > 600
+        ? 250
+        : MediaQuery.of(context).size.width / 2 - 24, // responsive width
+    height: 180, // 🔑 fixed height for all cards
+    child: InkWell(
+      onTap: () => _launchURL(url),
+      borderRadius: BorderRadius.circular(16),
+      child: Ink(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 5,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ClipOval(
+              child: Image.asset(
+                imagePath,
+                height: 60,
+                width: 60,
+                fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14, height: 1.4),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
 
   Widget _buildChatbotButton() {
     // Hide tooltip after 3 seconds
@@ -371,7 +354,7 @@ class _HomeScreenState extends State<HomeScreen> {
       {
         'title': 'Why Fresh Water Matters',
         'description':
-            'Fresh water plays a vital role in replenishing underground aquifers. It helps maintain soil permeability and ensures that groundwater remains a sustainable resource for communities and ecosystems.',
+            'Know how fresh water replenishes aquifers and sustains soil and communities.',
         'image': 'assets/images/fresh_water.png',
         'icon': Icons.terrain,
         'color': const Color.fromARGB(255, 189, 126, 103),

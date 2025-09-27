@@ -27,91 +27,96 @@ class _RooftopRainwaterHarvestingPageState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Intro Section with Image
-            Container(
-              margin: const EdgeInsets.all(16),
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2196F3).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.home,
-                          color: Color(0xFF2196F3),
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Introduction',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1565C0),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.asset(
-                      'assets/images/rtrwh.png', // Corrected path
-                      height: 250,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Rooftop rainwater harvesting involves collecting rainwater from rooftops through gutters and downspouts, filtering it, and storing it for later use such as irrigation, flushing, or even potable use after treatment.',
-                    style: TextStyle(fontSize: 16, height: 1.6),
-                  ),
-                ],
-              ),
-            ),
-
-            // Benefits Section
-
-            // Techniques Section
-            _buildTechniquesSection(),
-
+            _buildIntroductionSection(context),
+            _buildTechniquesSection(context),
             _buildBenefitsSection(context),
-            // Components Section
-            _buildComponentsSection(),
-
-            // Environmental Impact
+            _buildComponentsSection(context),
             _buildSection(
               'Environmental Impact',
               'Rooftop rainwater harvesting reduces stormwater runoff, decreases soil erosion, lowers demand on municipal water supply, and promotes sustainable water management.',
               Icons.eco,
               const Color(0xFF0D47A1),
             ),
-
             const SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
+
+  // Introduction Section with responsive image
+ Widget _buildIntroductionSection(BuildContext context) {
+  return Container(
+    margin: const EdgeInsets.all(16),
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: Theme.of(context).cardColor,
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.05),
+          blurRadius: 10,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2196F3).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.home,
+                color: Color(0xFF2196F3),
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Introduction',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1565C0),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Align(
+          alignment: Alignment.center,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: 500, // max width for web
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Image.asset(
+                  'assets/images/rtrwh.png',
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'Rooftop rainwater harvesting involves collecting rainwater from rooftops through gutters and downspouts, filtering it, and storing it for later use such as irrigation, flushing, or even potable use after treatment.',
+          style: TextStyle(fontSize: 16, height: 1.6),
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildSection(
     String title,
@@ -158,14 +163,7 @@ class _RooftopRainwaterHarvestingPageState
             ],
           ),
           const SizedBox(height: 16),
-          Text(
-            content,
-            style: TextStyle(
-              fontSize: 16,
-              height: 1.6,
-              //color: Theme.of(context).cardColor,
-            ),
-          ),
+          Text(content, style: const TextStyle(fontSize: 16, height: 1.6)),
         ],
       ),
     );
@@ -195,124 +193,132 @@ class _RooftopRainwaterHarvestingPageState
       },
     ];
 
-    final screenWidth = MediaQuery.of(context).size.width;
-    final cardWidth =
-        (screenWidth - 16 * 2 - 12 * 1) / 2; // Two cards per row with margin
-
-    return SingleChildScrollView(
-      child: Container(
-        margin: const EdgeInsets.all(16),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2196F3).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.star,
-                    color: Color(0xFF2196F3),
-                    size: 24,
-                  ),
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2196F3).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                const SizedBox(width: 12),
-                const Text(
-                  'Key Benefits',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2196F3),
-                  ),
+                child: const Icon(
+                  Icons.star,
+                  color: Color(0xFF2196F3),
+                  size: 24,
                 ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: benefits.map((benefit) {
-                return SizedBox(
-                  width: cardWidth, // Responsive width
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: Theme.of(context).brightness == Brightness.light
-                            ? [
-                                Theme.of(context).primaryColor.withOpacity(0.1),
-                                Theme.of(context).primaryColor.withOpacity(0.2),
-                              ]
-                            : [
-                                Theme.of(
-                                  context,
-                                ).colorScheme.surfaceVariant.withOpacity(0.2),
-                                Theme.of(
-                                  context,
-                                ).colorScheme.surface.withOpacity(0.1),
-                              ],
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Key Benefits',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2196F3),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final crossAxisCount = constraints.maxWidth > 600
+                  ? 4
+                  : 2; // responsive
+              final cardWidth =
+                  (constraints.maxWidth - (12 * (crossAxisCount - 1))) /
+                  crossAxisCount;
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: benefits.map((benefit) {
+                  return SizedBox(
+                    width: cardWidth,
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors:
+                              Theme.of(context).brightness == Brightness.light
+                              ? [
+                                  Theme.of(
+                                    context,
+                                  ).primaryColor.withOpacity(0.1),
+                                  Theme.of(
+                                    context,
+                                  ).primaryColor.withOpacity(0.2),
+                                ]
+                              : [
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceVariant.withOpacity(0.2),
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.surface.withOpacity(0.1),
+                                ],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white),
                       ),
-
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min, // Make height flexible
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          benefit['icon'] as IconData,
-                          size: 32,
-                          color: const Color(0xFF2196F3),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          benefit['title'] as String,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            benefit['icon'] as IconData,
+                            size: 32,
+                            color: const Color(0xFF2196F3),
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          benefit['desc'] as String,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
+                          const SizedBox(height: 8),
+                          Text(
+                            benefit['title'] as String,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+                          const SizedBox(height: 4),
+                          Text(
+                            benefit['desc'] as String,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
-        ),
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildTechniquesSection() {
+  Widget _buildTechniquesSection(BuildContext context) {
     final techniques = [
       {
         'title': 'Gutter Systems',
@@ -420,10 +426,7 @@ class _RooftopRainwaterHarvestingPageState
                         const SizedBox(height: 4),
                         Text(
                           technique['desc'] as String,
-                          style: TextStyle(
-                            fontSize: 14,
-                            // color: Colors.grey[600],
-                          ),
+                          style: const TextStyle(fontSize: 14),
                         ),
                       ],
                     ),
@@ -437,7 +440,7 @@ class _RooftopRainwaterHarvestingPageState
     );
   }
 
-  Widget _buildComponentsSection() {
+  Widget _buildComponentsSection(BuildContext context) {
     final components = [
       {
         'name': 'Catchment Area',

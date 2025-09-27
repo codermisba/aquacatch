@@ -103,12 +103,10 @@ Widget buildExpandableSelector({
         margin: const EdgeInsets.symmetric(vertical: 8),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
-          color: Theme.of(context).inputDecorationTheme.fillColor ?? Colors.white,
+          color:
+              Theme.of(context).inputDecorationTheme.fillColor ?? Colors.white,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: Theme.of(context).primaryColor,
-            width: 1.5,
-          ),
+          border: Border.all(color: Theme.of(context).primaryColor, width: 1.5),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,7 +166,11 @@ Widget buildExpandableSelector({
                             },
                             child: Container(
                               decoration: BoxDecoration(
-                                color: Theme.of(context).inputDecorationTheme.fillColor ?? Colors.white,
+                                color:
+                                    Theme.of(
+                                      context,
+                                    ).inputDecorationTheme.fillColor ??
+                                    Colors.white,
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
                                   color: isSelected
@@ -180,10 +182,13 @@ Widget buildExpandableSelector({
                               child: Column(
                                 children: [
                                   Expanded(
-                                    child: option['image'] != null &&
+                                    child:
+                                        option['image'] != null &&
                                             option['image']!.isNotEmpty
                                         ? ClipRRect(
-                                            borderRadius: BorderRadius.circular(14),
+                                            borderRadius: BorderRadius.circular(
+                                              14,
+                                            ),
                                             child: Image.asset(
                                               option['image']!,
                                               width: double.infinity,
@@ -193,7 +198,8 @@ Widget buildExpandableSelector({
                                           )
                                         : Center(
                                             child: Text(
-                                              option['label'] ?? option['value']!,
+                                              option['label'] ??
+                                                  option['value']!,
                                               textAlign: TextAlign.center,
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.w500,
@@ -247,12 +253,10 @@ Widget buildTextExpandableSelector({
         margin: const EdgeInsets.symmetric(vertical: 8),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
-          color: Theme.of(context).inputDecorationTheme.fillColor ?? Colors.white,
+          color:
+              Theme.of(context).inputDecorationTheme.fillColor ?? Colors.white,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: Theme.of(context).primaryColor,
-            width: 1.5,
-          ),
+          border: Border.all(color: Theme.of(context).primaryColor, width: 1.5),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -297,7 +301,11 @@ Widget buildTextExpandableSelector({
                           return Container(
                             margin: const EdgeInsets.symmetric(vertical: 6),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).inputDecorationTheme.fillColor ?? Colors.white,
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).inputDecorationTheme.fillColor ??
+                                  Colors.white,
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
                                 color: isSelected
@@ -307,11 +315,19 @@ Widget buildTextExpandableSelector({
                               ),
                             ),
                             child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                              dense: true, // Makes ListTile more compact
+                              visualDensity: const VisualDensity(
+                                vertical: -2,
+                              ), // further reduces height
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 4,
+                              ), // smaller padding
                               title: Text(
                                 option['label'] ?? option['value']!,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w500,
+                                  fontSize: 14, // slightly smaller font
                                 ),
                               ),
                               onTap: () {
