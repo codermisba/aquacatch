@@ -138,7 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Ink(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).cardColor, // ✅ added here
+                            color: Theme.of(context).cardColor,
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
@@ -149,19 +149,20 @@ class _HomeScreenState extends State<HomeScreen> {
                             ],
                           ),
                           child: SizedBox(
-                            height: 120, // ✅ set same height for both cards
+                            height: 120,
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Image.asset(
-                                  "assets/CGWB_logo.jpg", // path to your logo in assets
-                                  height: 40,
-                                  width: 40,
-                                  fit: BoxFit
-                                      .contain, // ensures it fits within the size without distortion
+                                ClipOval(
+                                  child: Image.asset(
+                                    "assets/images/CGWB_logo.jpg",
+                                    height: 60,
+                                    width: 60,
+                                    fit: BoxFit.cover, // fills the circle
+                                  ),
                                 ),
-                                SizedBox(height: 8),
-                                Text(
+                                const SizedBox(height: 8),
+                                const Text(
                                   "Central Ground Water Board",
                                   textAlign: TextAlign.center,
                                   style: TextStyle(fontSize: 14, height: 1.4),
@@ -183,54 +184,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Ink(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Theme.of(
-                              context,
-                            ).cardColor, // ✅ already present
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 5,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: SizedBox(
-                            height: 120, // ✅ same height here
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Image.asset(
-                                  "assets/jalshakty.jpg", // path to your logo in assets
-                                  height: 40,
-                                  width: 40,
-                                  fit: BoxFit
-                                      .contain, // ensures it fits within the size without distortion
-                                ),
-                                SizedBox(height: 8),
-                                Text(
-                                  "Ministry of JalShakti.",
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(fontSize: 14, height: 1.4),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Container(
-                      margin: const EdgeInsets.all(8),
-                      child: InkWell(
-                        onTap: () => _launchURL(
-                          'https://indiawris.gov.in/',
-                        ), // IndiaWRIS URL
-                        borderRadius: BorderRadius.circular(16),
-                        child: Ink(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
                             color: Theme.of(context).cardColor,
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
@@ -246,15 +199,18 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Image.asset(
-                                  "assets/indiawris_logo.jpg", // replace with your IndiaWRIS logo asset
-                                  height: 40,
-                                  width: 40,
-                                  fit: BoxFit.contain,
+                                ClipOval(
+                                  child: Image.asset(
+                                    "assets/images/jalshakty.png",
+                                    height: 60,
+                                    width: 60,
+                                    fit: BoxFit
+                                        .cover, // cover ensures it fills the circle
+                                  ),
                                 ),
                                 const SizedBox(height: 8),
                                 const Text(
-                                  "India Water Resources Information System",
+                                  "Ministry of JalShakti.",
                                   textAlign: TextAlign.center,
                                   style: TextStyle(fontSize: 14, height: 1.4),
                                 ),
