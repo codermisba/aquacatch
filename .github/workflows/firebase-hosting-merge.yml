@@ -1,26 +1,39 @@
+name: Deploy Flutter Web to Firebase Hosting
+
+on:
+  push:
+    branches:
+      - main   # Trigger on pushes to main branch
+
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
+
     steps:
+      # 1️⃣ Checkout the repo
       - uses: actions/checkout@v4
 
-      # ✅ Install Flutter first
+      # 2️⃣ Install Flutter
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.35.1'   # Match your local version
+          flutter-version: '3.35.1'   # Use your local Flutter version
+          channel: 'stable'
 
-      # ✅ Create .env dynamically
+      # 3️⃣ Verify Flutter and Dart
+      - run: flutter --version
+
+      # 4️⃣ Create .env dynamically from GitHub Secret
       - name: Create .env file
         run: |
           echo "HF_TOKEN=${{ secrets.HF_TOKEN }}" >> .env
 
-      # ✅ Install dependencies
+      # 5️⃣ Install dependencies
       - run: flutter pub get
 
-      # ✅ Build for web
+      # 6️⃣ Build Flutter Web for release
       - run: flutter build web --release
 
-      # ✅ Deploy to Firebase Hosting
+      # 7️⃣ Deploy to Firebase Hosting
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
