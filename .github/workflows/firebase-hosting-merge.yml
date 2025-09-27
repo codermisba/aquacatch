@@ -1,5 +1,3 @@
-# Firebase Hosting GitHub Action for Flutter Web
-
 name: Deploy to Firebase Hosting on merge
 
 on:
@@ -10,24 +8,20 @@ on:
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
-
     steps:
       # Checkout code
       - uses: actions/checkout@v4
 
-      # Install Flutter
+      # Setup Flutter (use your exact version)
       - uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.35.1'
           channel: 'stable'
-          flutter-version: '3.24.0'   # 👈 use your Flutter version (check with `flutter --version` locally)
 
-      # Verify Flutter is installed
-      - run: flutter --version
-
-      # Get dependencies
+      # Install dependencies
       - run: flutter pub get
 
-      # Build Flutter web
+      # Build for web
       - run: flutter build web --release
 
       # Deploy to Firebase Hosting
