@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+// import 'package:url_launcher/url_launcher.dart';
 
 class ArtificialRechargePage extends StatefulWidget {
   const ArtificialRechargePage({super.key});
@@ -9,11 +9,11 @@ class ArtificialRechargePage extends StatefulWidget {
 }
 
 class _ArtificialRechargePageState extends State<ArtificialRechargePage> {
-  void _launchURL(String url) async {
-    if (!await launchUrl(Uri.parse(url))) {
-      throw 'Could not launch $url';
-    }
-  }
+  // void _launchURL(String url) async {
+  //   if (!await launchUrl(Uri.parse(url))) {
+  //     throw 'Could not launch $url';
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
