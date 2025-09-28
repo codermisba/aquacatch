@@ -1,4 +1,5 @@
 import 'package:aquacatch/chat.dart';
+import 'package:aquacatch/env_helper.dart';
 import 'package:aquacatch/main_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -14,11 +15,14 @@ import 'educational pages/rooftop_rainwaterharvesting.dart';
 import 'educational pages/fresh_water.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'theme.dart';
+import 'package:flutter/foundation.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await dotenv.load(fileName: '.env');
+  
+    await dotenv.load(fileName: "assets/.env"); // load locally for Android/iOS
+  
   runApp(const MyApp());
 }
 

@@ -21,7 +21,9 @@ class _ChatPageState extends State<ChatPage> {
   ];
 
   Future<String> getBotResponseHF(String userInput) async {
+    
     final String? hfToken = dotenv.env['HF_TOKEN'];
+    
     final String hfModel = "deepseek-ai/DeepSeek-V3-0324";
 
     final url = Uri.parse("https://router.huggingface.co/v1/chat/completions");
