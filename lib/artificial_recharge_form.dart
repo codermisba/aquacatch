@@ -438,18 +438,7 @@ Widget build(BuildContext context) {
                   hint: "Number of Dwellers",
                   icon: Icons.people,
                 ),
-                customTextField(
-                  context: context,
-                  controller: _wellDepthController,
-                  hint: "Well Depth (m)",
-                  icon: Icons.height,
-                ),
-                customTextField(
-                  context: context,
-                  controller: _wellDiameterController,
-                  hint: "Well Diameter (m)",
-                  icon: Icons.circle,
-                ),
+               
                 const SizedBox(height: 8),
                 buildTextExpandableSelector(
                   context: context,
