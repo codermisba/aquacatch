@@ -23,9 +23,9 @@ jobs:
       - run: flutter --version
 
       # 4️⃣ Create .env dynamically from GitHub Secret
-      - name: Create .env file
-        run: |
-          echo "HF_TOKEN=${{ secrets.HF_TOKEN }}" >> .env
+      #- name: Create .env file
+      #  run: |
+      #    echo "HF_TOKEN=${{ secrets.HF_TOKEN }}" >> .env
 
       # 5️⃣ Install dependencies
       - run: flutter pub get
