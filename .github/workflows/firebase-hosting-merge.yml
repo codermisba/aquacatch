@@ -23,15 +23,19 @@ jobs:
       - run: flutter --version
 
       # 4️⃣ Create .env dynamically from GitHub Secret
-      #- name: Create .env file
-      #  run: |
-      #    echo "HF_TOKEN=${{ secrets.HF_TOKEN }}" >> .env
+      - name: Create .env file
+        run: |
+          echo "HF_TOKEN=${{ secrets.HF_TOKEN }}" >> .env
 
       # 5️⃣ Install dependencies
       - run: flutter pub get
 
       # 6️⃣ Build Flutter Web for release
       - run: flutter build web --release
+
+      # 6.5️⃣ Copy .env into web build so it’s deployed
+      - name: Copy .env into web build
+        run: cp .env build/web/.env
 
       # 7️⃣ Deploy to Firebase Hosting
       - uses: FirebaseExtended/action-hosting-deploy@v0
