@@ -21,7 +21,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   
-    await dotenv.load(fileName: "assets/.env"); // load locally for Android/iOS
+    await dotenv.load(fileName: ".env"); // load locally for Android/iOS
   
   runApp(const MyApp());
 }

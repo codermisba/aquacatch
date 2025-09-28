@@ -27,13 +27,23 @@ class _ArtificialRechargeFormState extends State<ArtificialRechargeForm> {
   bool _isLocationTypeExpanded = false;
 
   // Common Controllers
-  final TextEditingController _locationController = TextEditingController(text: "Solapur");
-  final TextEditingController _roofAreaController = TextEditingController(text: "120"); // sqft by default in UI
-  final TextEditingController _dwellersController = TextEditingController(text: "5");
+  final TextEditingController _locationController = TextEditingController(
+    text: "Solapur",
+  );
+  final TextEditingController _roofAreaController = TextEditingController(
+    text: "120",
+  ); // sqft by default in UI
+  final TextEditingController _dwellersController = TextEditingController(
+    text: "5",
+  );
 
   // AR-specific controllers
-  final TextEditingController _wellDepthController = TextEditingController(text: "10"); // meters
-  final TextEditingController _wellDiameterController = TextEditingController(text: "1"); // meters
+  final TextEditingController _wellDepthController = TextEditingController(
+    text: "10",
+  ); // meters
+  final TextEditingController _wellDiameterController = TextEditingController(
+    text: "1",
+  ); // meters
 
   String _city = "Solapur"; // default
   String _roofType = "concrete";
@@ -80,50 +90,70 @@ class _ArtificialRechargeFormState extends State<ArtificialRechargeForm> {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enable location services')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enable location services')),
+        );
         return;
       }
 
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location permission denied')));
+        if (permission == LocationPermission.denied ||
+            permission == LocationPermission.deniedForever) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Location permission denied')),
+          );
           return;
         }
       }
 
-      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-      List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
 
       if (placemarks.isNotEmpty) {
         Placemark place = placemarks.first;
-        String address = [place.locality ?? '', place.subAdministrativeArea ?? '', place.administrativeArea ?? '']
-            .where((e) => e.isNotEmpty)
-            .join(", ");
+        String address = [
+          place.locality ?? '',
+          place.subAdministrativeArea ?? '',
+          place.administrativeArea ?? '',
+        ].where((e) => e.isNotEmpty).join(", ");
         setState(() {
           _city = place.locality ?? _city;
-          _locationController.text = address.isNotEmpty ? address : "${position.latitude}, ${position.longitude}";
+          _locationController.text = address.isNotEmpty
+              ? address
+              : "${position.latitude}, ${position.longitude}";
         });
       } else {
         setState(() {
-          _locationController.text = "${position.latitude}, ${position.longitude}";
+          _locationController.text =
+              "${position.latitude}, ${position.longitude}";
         });
       }
     } catch (e) {
       debugPrint("Location error: $e");
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to get location: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to get location: $e')));
     }
   }
 
   Future<double> fetchGroundwaterLevel(String district) async {
     try {
-      final url = Uri.parse("https://sheetdb.io/api/v1/x7eb8wzkxon0e?district_lower=${district.toLowerCase()}");
+      final url = Uri.parse(
+        "https://sheetdb.io/api/v1/x7eb8wzkxon0e?district_lower=${district.toLowerCase()}",
+      );
       final response = await http.get(url);
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data.isNotEmpty) {
-          return double.tryParse(data[0]["groundwaterlevel"].toString()) ?? 15.0;
+          return double.tryParse(data[0]["groundwaterlevel"].toString()) ??
+              15.0;
         }
       }
     } catch (e) {
@@ -134,7 +164,9 @@ class _ArtificialRechargeFormState extends State<ArtificialRechargeForm> {
 
   /// ---------------- Load JSON cost data ----------------
   Future<List<dynamic>> loadARCostData() async {
-    final String response = await rootBundle.loadString('assets/arcostdata.json');
+    final String response = await rootBundle.loadString(
+      'assets/arcostdata.json',
+    );
     final Map<String, dynamic> data = json.decode(response);
     return data['Sheet1'] as List<dynamic>;
   }
@@ -176,8 +208,9 @@ class _ArtificialRechargeFormState extends State<ArtificialRechargeForm> {
     List<dynamic> data = await loadARCostData();
     Map<String, dynamic>? match;
     try {
-      match = data.firstWhere((row) =>
-          (row['Structure'] ?? '').toString().toLowerCase() == "pit");
+      match = data.firstWhere(
+        (row) => (row['Structure'] ?? '').toString().toLowerCase() == "pit",
+      );
     } catch (_) {
       match = null;
     }
@@ -291,51 +324,48 @@ class _ArtificialRechargeFormState extends State<ArtificialRechargeForm> {
     return null;
   }
 
- @override
-Widget build(BuildContext context) {
-  final primaryColor = Theme.of(context).primaryColor;
+  @override
+  Widget build(BuildContext context) {
+    final primaryColor = Theme.of(context).primaryColor;
 
-  return Scaffold(
-    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-    appBar: AppBar(
-      flexibleSpace: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: Theme.of(context).brightness == Brightness.light
-                ? [
-                    primaryColor.withOpacity(0.9),
-                    primaryColor,
-                  ] // light theme gradient
-                : [Colors.black87, Colors.black], // dark theme gradient
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: Theme.of(context).brightness == Brightness.light
+                  ? [
+                      primaryColor.withOpacity(0.9),
+                      primaryColor,
+                    ] // light theme gradient
+                  : [Colors.black87, Colors.black], // dark theme gradient
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
         ),
+        title: const Text(
+          "Artificial Recharge Assessment",
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        elevation: 0,
+        automaticallyImplyLeading: true, // ✅ enables back arrow automatically
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new),
+          onPressed: () => Navigator.pop(context), // ✅ go back
+        ),
       ),
-      title: const Text(
-        "Artificial Recharge Assessment",
-        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [_buildForm(context)],
+        ),
       ),
-      centerTitle: true,
-      elevation: 0,
-      automaticallyImplyLeading: true, // ✅ enables back arrow automatically
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new),
-        onPressed: () => Navigator.pop(context), // ✅ go back
-      ),
-      
-    ),
-    body: SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildForm(context),
-        ],
-      ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildForm(BuildContext context) {
     return Center(
@@ -409,21 +439,6 @@ Widget build(BuildContext context) {
                   ),
                 ),
                 const SizedBox(height: 16),
-                buildTextExpandableSelector(
-                  context: context,
-                  title: 'Select Location Type',
-                  icon: Icons.location_city,
-                  options: _locationTypeOptions,
-                  selectedValue: _selectedLocationType,
-                  isExpanded: _isLocationTypeExpanded,
-                  onToggle: () => setState(
-                    () => _isLocationTypeExpanded = !_isLocationTypeExpanded,
-                  ),
-                  onChanged: (value) => setState(
-                    () => _selectedLocationType =
-                        value ?? "urban", // default value
-                  ),
-                ),
 
                 // AR-specific inputs
                 customTextField(
@@ -432,30 +447,62 @@ Widget build(BuildContext context) {
                   hint: "Rooftop Area (sqft)",
                   icon: Icons.roofing,
                 ),
-                customTextField(
-                  context: context,
-                  controller: _dwellersController,
-                  hint: "Number of Dwellers",
-                  icon: Icons.people,
-                ),
-               
+
                 const SizedBox(height: 8),
-                buildTextExpandableSelector(
+                buildExpandableSelector(
                   context: context,
                   title: 'Select Soil Type',
                   icon: Icons.landscape,
                   options: [
-                    {'value': 'Sandy', 'label': 'Sandy'},
-                    {'value': 'Clayey', 'label': 'Clayey'},
-                    {'value': 'Loamy', 'label': 'Loamy'},
+                    {
+                      'value': 'Alluvial soil',
+                      'label': 'Alluvial soil',
+                      'image': 'assets/images/alluvial.jpg',
+                    },
+                    {
+                      'value': 'Black soil (Regur)',
+                      'label': 'Black soil (Regur)',
+                      'image': 'assets/images/black_soil.jpg',
+                    },
+                    {
+                      'value': 'Red and Yellow soil',
+                      'label': 'Red and Yellow soil',
+                      'image': 'assets/images/red_yellow.JPG',
+                    },
+                    {
+                      'value': 'Laterite soil',
+                      'label': 'Laterite soil',
+                      'image': 'assets/images/laterite_soil.jpg',
+                    },
+                    {
+                      'value': 'Arid (Desert) soil',
+                      'label': 'Arid (Desert) soil',
+                      'image': 'assets/images/arid.jpg',
+                    },
+                    {
+                      'value': 'Forest soil',
+                      'label': 'Forest soil',
+                      'image': 'assets/images/forest.jpg',
+                    },
+                    {
+                      'value': 'Saline soil',
+                      'label': 'Saline soil',
+                      'image': 'assets/images/saline.jpg',
+                    },
+                    {
+                      'value': 'Peaty soil',
+                      'label': 'Peaty soil',
+                      'image': 'assets/images/peaty.jpg',
+                    },
                   ],
                   selectedValue: _soilType,
                   isExpanded: _isSoilTypeExpanded,
-                  onToggle: () => setState(
-                    () => _isSoilTypeExpanded = !_isSoilTypeExpanded,
-                  ),
-                  onChanged: (value) =>
-                      setState(() => _soilType = value ?? "Sandy"),
+                  onToggle: () => setState(() {
+                    _isSoilTypeExpanded = !_isSoilTypeExpanded;
+                  }),
+                  onChanged: (value) => setState(() {
+                    _soilType = value ?? "Alluvial soil";
+                  }),
                 ),
 
                 const SizedBox(height: 28),
