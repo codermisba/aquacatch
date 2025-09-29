@@ -24,7 +24,9 @@ class ResultPage extends StatefulWidget {
   final double totalCost;
   final double savings;
   final int dwellers;
+  final double tankCost;
   final double roofArea;
+  final double materialCost;
   final double groundwaterLevel;
   final String aquiferType;
   final String city;
@@ -40,8 +42,10 @@ class ResultPage extends StatefulWidget {
     required this.filterCost,
     required this.installationCost,
     required this.totalCost,
+    required this.materialCost,
     required this.savings,
     required this.dwellers,
+    required this.tankCost,
     required this.roofArea,
     required this.groundwaterLevel,
     required this.aquiferType,
@@ -118,6 +122,9 @@ You are AquaBot, a water harvesting expert. Generate a professional, detailed wa
 - Pipe Cost: ₹${widget.pipeCost.toStringAsFixed(0)}
 - Filter Cost: ₹${widget.filterCost.toStringAsFixed(0)}
 - Installation Cost: ₹${widget.installationCost.toStringAsFixed(0)}
+- Tank cost : ₹${widget.tankCost.toStringAsFixed(0)}
+- Material cost : ₹${widget.materialCost.toStringAsFixed(0)}
+
 - Total Cost: ₹${widget.totalCost.toStringAsFixed(0)}
 - Expected Savings: ₹${widget.savings.toStringAsFixed(0)} per year
 - Number of Dwellers: ${widget.dwellers}
@@ -372,16 +379,12 @@ Strictly adhere to the given values. Do not make assumptions.
   // ---------------- Utility ----------------
  String getStructureLabel() {
   switch (widget.structure.toLowerCase()) {
-    case "arsurface":
-      return "Artificial Recharge Structure";
-    case "smallsurface":
+    case "small":
       return "Small Surface Tank";
-    case "smallmediumsurface":
-      return "Small-Medium Surface Tank";
-    case "mediumsurface":
-      return "Medium Surface Tank";
-    case "largesurface":
-      return "Large Surface Tank";
+    case "medium":
+      return "Medium Surface/Underground Tank";
+    case "large":
+      return "Large Underground Tank";
     default:
       return widget.structure; // fallback
   }
@@ -389,18 +392,14 @@ Strictly adhere to the given values. Do not make assumptions.
 
 String getStructureImage() {
   switch (widget.structure.toLowerCase()) {
-    case "arsurface":
-      return "assets/images/ar.png";
-    case "smallsurface":
+    case "small":
       return "assets/images/small.png";
-    case "smallmediumsurface":
-      return "assets/images/medium.jpg"; // 🔑 add image for this
-    case "mediumsurface":
+    case "medium":
       return "assets/images/medium.jpg";
-    case "largesurface":
-      return "assets/images/large.jpg";
+    case "large":
+       return "assets/images/large.png";
     default:
-      return "assets/images/small.png";
+      return "assets/images/small.jpg";
   }
 }
 
@@ -523,9 +522,17 @@ String getStructureImage() {
                       "Filter Cost:",
                       "₹${widget.filterCost.toStringAsFixed(0)}",
                     ),
+                     _infoRow(
+                      "Material Cost:",
+                      "₹${widget.materialCost.toStringAsFixed(0)}",
+                    ),
                     _infoRow(
                       "Installation Cost:",
                       "₹${widget.installationCost.toStringAsFixed(0)}",
+                    ),
+                    _infoRow(
+                      "Tank Cost:",
+                      "₹${widget.tankCost.toStringAsFixed(0)}",
                     ),
                     _infoRow(
                       "Total Cost:",

@@ -13,10 +13,12 @@ class RooftopRainwaterHarvestingForm extends StatefulWidget {
   const RooftopRainwaterHarvestingForm({super.key});
 
   @override
-  _RooftopRainwaterHarvestingFormState createState() => _RooftopRainwaterHarvestingFormState();
+  _RooftopRainwaterHarvestingFormState createState() =>
+      _RooftopRainwaterHarvestingFormState();
 }
 
-class _RooftopRainwaterHarvestingFormState extends State<RooftopRainwaterHarvestingForm> {
+class _RooftopRainwaterHarvestingFormState
+    extends State<RooftopRainwaterHarvestingForm> {
   String? _selectedRoofShape;
   bool _isRoofShapeExpanded = false;
 
@@ -25,9 +27,21 @@ class _RooftopRainwaterHarvestingFormState extends State<RooftopRainwaterHarvest
   bool _isRoofMaterialExpanded = false;
 
   final List<Map<String, String>> _filterOptions = [
-    {'value': 'sandfilter', 'label': 'Sand Filter', 'image': 'assets/images/sand_filter.jpg'},
-    {'value': 'charcoalfilter', 'label': 'Charcoal Filter', 'image': 'assets/images/charcoal_filter.png'},
-    {'value': 'rccfirstflushfilter', 'label': 'RCC First Flush Filter', 'image': 'assets/images/first_flush.png'}
+    {
+      'value': 'sandfilter',
+      'label': 'Sand Filter',
+      'image': 'assets/images/sand_filter.jpg',
+    },
+    {
+      'value': 'charcoalfilter',
+      'label': 'Charcoal Filter',
+      'image': 'assets/images/charcoal_filter.png',
+    },
+    {
+      'value': 'rccfirstflushfilter',
+      'label': 'RCC First Flush Filter',
+      'image': 'assets/images/first_flush.png',
+    },
   ];
 
   final List<Map<String, String>> _roofTypeOptions = [
@@ -43,19 +57,32 @@ class _RooftopRainwaterHarvestingFormState extends State<RooftopRainwaterHarvest
   ];
 
   final List<Map<String, String>> _rooftopOptions = [
-    {'value': 'Flat Roof', 'label': 'Flat Roof', 'image': 'assets/images/flat_roof.png'},
-    {'value': 'Sloped Roof', 'label': 'Sloped Roof', 'image': 'assets/images/sloped_roof.png'},
+    {
+      'value': 'Flat Roof',
+      'label': 'Flat Roof',
+      'image': 'assets/images/flat_roof.png',
+    },
+    {
+      'value': 'Sloped Roof',
+      'label': 'Sloping Roof',
+      'image': 'assets/images/sloped_roof.png',
+    },
   ];
 
   String? _selectedLocationType;
   bool _isLocationTypeExpanded = false;
 
   // Common Controllers
-  final TextEditingController _locationController = TextEditingController(text: "Solapur");
-  final TextEditingController _roofAreaController = TextEditingController(text: "120"); // sqft by default in UI
-  final TextEditingController _openSpaceController = TextEditingController(text: "80"); // sqft
-  final TextEditingController _noOfFloors = TextEditingController(text: "1");
-  final TextEditingController _dwellersController = TextEditingController(text: "5");
+  final TextEditingController _locationController =
+      TextEditingController();
+  final TextEditingController _roofAreaController =
+      TextEditingController(); // sqm direct
+  final TextEditingController _openSpaceController =
+      TextEditingController();
+  final TextEditingController _noOfFloors =
+      TextEditingController();
+  final TextEditingController _dwellersController =
+      TextEditingController();
 
   String _city = "Solapur"; // default
   String _roofType = "concrete";
@@ -64,49 +91,14 @@ class _RooftopRainwaterHarvestingFormState extends State<RooftopRainwaterHarvest
   bool _isLoading = false;
 
   /// ---------------- Normalizers & helpers ----------------
-
-  /// Normalize structure names to match JSON keys like 'smallsurface', 'mediumsurface', 'largesurface', etc.
-  String normalizeStructure(String input) {
-    String s = input.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
-    // handle known patterns
-    if (s.contains("smallsurface")) return "smallsurface";
-    if (s.contains("smallmedium")) return "smallmediumsurface";
-    if (s.contains("mediumlarge")) return "mediumlargesurface";
-    if (s.contains("mediumsurface")) return "mediumsurface";
-    if (s.contains("largesurface")) return "largesurface";
-    if (s.contains("verylarge")) return "verylargesurface";
-    if (s.contains("extensive")) return "extensivesurface";
-    if (s.contains("ar")) return "arsurface";
-    // fallback: remove spaces
-    return s;
-  }
-
-  /// Normalize filter type to match JSON keys: 'sandfilter','charcoalfilter','rccfirstflushfilter'
   String normalizeFilter(String? input) {
     if (input == null) return "";
     String s = input.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
     if (s.contains("sand")) return "sandfilter";
     if (s.contains("charcoal")) return "charcoalfilter";
-    if (s.contains("firstflush") || s.contains("rcc")) return "rccfirstflushfilter";
-    if (s.contains("mesh")) return "meshorscreenfilter";
+    if (s.contains("firstflush") || s.contains("rcc"))
+      return "rccfirstflushfilter";
     return s;
-  }
-
-  /// Get roof area range string the dataset uses (ranges are in square metres).
-  String getRoofAreaRangeFromSqm(double roofAreaSqm) {
-    if (roofAreaSqm <= 100) {
-      return "<=100";
-    } else if (roofAreaSqm <= 250) {
-      return "101-250";
-    } else if (roofAreaSqm <= 500) {
-      return "251-500";
-    } else if (roofAreaSqm <= 1000) {
-      return "501-1000";
-    } else if (roofAreaSqm <= 2000) {
-      return "1001-2000";
-    } else {
-      return ">2000"; // fallback for very large roofs
-    }
   }
 
   /// ---------------- Image picker ----------------
@@ -123,45 +115,64 @@ class _RooftopRainwaterHarvestingFormState extends State<RooftopRainwaterHarvest
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enable location services')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enable location services')),
+        );
         return;
       }
 
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location permission denied')));
+        if (permission == LocationPermission.denied ||
+            permission == LocationPermission.deniedForever) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Location permission denied')),
+          );
           return;
         }
       }
 
-      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-      List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
 
       if (placemarks.isNotEmpty) {
         Placemark place = placemarks.first;
-        String address = [place.locality ?? '', place.subAdministrativeArea ?? '', place.administrativeArea ?? '']
-            .where((e) => e.isNotEmpty)
-            .join(", ");
+        String address = [
+          place.locality ?? '',
+          place.subAdministrativeArea ?? '',
+          place.administrativeArea ?? '',
+        ].where((e) => e.isNotEmpty).join(", ");
         setState(() {
           _city = place.locality ?? _city;
-          _locationController.text = address.isNotEmpty ? address : "${position.latitude}, ${position.longitude}";
+          _locationController.text = address.isNotEmpty
+              ? address
+              : "${position.latitude}, ${position.longitude}";
         });
       } else {
         setState(() {
-          _locationController.text = "${position.latitude}, ${position.longitude}";
+          _locationController.text =
+              "${position.latitude}, ${position.longitude}";
         });
       }
     } catch (e) {
       debugPrint("Location error: $e");
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to get location: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to get location: $e')));
     }
   }
 
   Future<double> fetchGroundwaterLevel(String district) async {
     try {
-      final url = Uri.parse("https://sheetdb.io/api/v1/x7eb8wzkxon0e?district_lower=${district.toLowerCase()}");
+      final url = Uri.parse(
+        "https://sheetdb.io/api/v1/x7eb8wzkxon0e?district_lower=${district.toLowerCase()}",
+      );
       final response = await http.get(url);
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -175,11 +186,20 @@ class _RooftopRainwaterHarvestingFormState extends State<RooftopRainwaterHarvest
     return 15.0; // fallback
   }
 
-  /// ---------------- Load JSON cost data ----------------
+  /// ---------------- Load RTRWH Cost Data from SheetDB ----------------
   Future<List<dynamic>> loadRooftopCostData() async {
-    final String response = await rootBundle.loadString('assets/rrwhcostdata.json');
-    final Map<String, dynamic> data = json.decode(response);
-    return data['Sheet1'] as List<dynamic>;
+    try {
+      final url = Uri.parse("https://sheetdb.io/api/v1/domso538f6dw7");
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data is List) return data;
+      }
+    } catch (e) {
+      debugPrint("SheetDB fetch error: $e");
+    }
+    return [];
   }
 
   /// ---------------- Runoff Coefficients ----------------
@@ -191,59 +211,81 @@ class _RooftopRainwaterHarvestingFormState extends State<RooftopRainwaterHarvest
   };
 
   /// ---------------- Costs helpers ----------------
-  double getPipeUnitCostFallback(String pipeType) {
-    final Map<String, double> pipeCostData = {"pvc": 120, "gi": 300, "hdpe": 150};
-    return pipeCostData[pipeType.toLowerCase()] ?? 150;
+  double calculateWaterHarvested({
+    required double annualRainfall,
+    required double roofAreaSqm,
+    required String roofType,
+  }) {
+    final coeff = runoffCoeff[roofType.toLowerCase()] ?? 0.70;
+    return annualRainfall * roofAreaSqm * coeff;
   }
 
-  double calculateWaterHarvested({required double annualRainfall, required double roofAreaSqm, required String roofType}) {
-    final coeff = runoffCoeff[roofType.toLowerCase()] ?? 0.75;
-    return (annualRainfall / 1000) * roofAreaSqm * coeff * 1000;
-  }
-
-  double calculatePipeLength({required int numberOfFloors, required String roofShape, double verticalPerFloor = 3.5, double horizontalLength = 10.0}) {
+  double calculatePipeLength({
+    required int numberOfFloors,
+    required String roofShape,
+    double verticalPerFloor = 3.2,
+    double horizontalLength = 10.0,
+  }) {
     double totalLength = numberOfFloors * verticalPerFloor;
-    if (roofShape.toLowerCase().contains("sloped")) totalLength += horizontalLength;
+    if (roofShape.toLowerCase().contains("sloped")) {
+      totalLength += horizontalLength;
+    }
     return totalLength;
   }
 
-  double calculatePipeCost({required double totalLength, required double unitCostPerMeter}) {
+  double calculatePipeCost({
+    required double totalLength,
+    required double unitCostPerMeter,
+  }) {
     return totalLength * unitCostPerMeter;
   }
 
-  double calculateTankCost({required double capacityLiters, required String brand}) {
+  double calculateTankCost({
+    required double capacityLiters,
+    required String brand,
+  }) {
     final costPerLitre = plasticTankCost[brand] ?? 1.0;
     return capacityLiters * costPerLitre;
   }
 
-  /// ---------------- Plastic Tank Costs ----------------
-  Map<String, double> plasticTankCost = {"Hindustan": 1.80, "Jindal": 1.80, "Storex": 0.75, "Ganga": 0.75};
+  Map<String, double> plasticTankCost = {
+    "Hindustan": 1.80,
+    "Jindal": 1.80,
+    "Storex": 0.75,
+    "Ganga": 0.75,
+  };
 
   double calculateSavings(double harvestedLiters) {
     return harvestedLiters * 0.5; // ₹0.5 per liter
   }
 
-  /// ---------------- Pipe Unit Cost ----------------
-  double getPipeUnitCost(String pipeType) {
-    Map<String, double> pipeCostData = {
-      "pvc": 120,
-      "gi": 300,
-      "hdpe": 150,
-    };
-    return pipeCostData[pipeType.toLowerCase()] ?? 150;
+  // ✅ simplified fallback
+  Map<String, double> getDefaultCosts(String structureKey) {
+    switch (structureKey) {
+      case "small":
+        return {"installation": 2000, "filter": 8000};
+      case "medium":
+        return {"installation": 4000, "filter": 15000};
+      case "large":
+        return {"installation": 8000, "filter": 25000};
+      default:
+        return {"installation": 5000, "filter": 2000};
+    }
   }
+// ---------------- Pipe Unit Cost fallback ----------------
+double getPipeUnitCost(String pipeType) {
+  Map<String, double> pipeCostData = {"pvc": 120, "gi": 300, "hdpe": 150};
+  return pipeCostData[pipeType.toLowerCase()] ?? 150;
+}
 
   /// ---------------- Main calculation & navigation ----------------
   Future<void> _navigateToResult() async {
     setState(() => _isLoading = true);
 
-    // read user inputs
     String location = _locationController.text.trim();
     int dwellers = int.tryParse(_dwellersController.text) ?? 1;
-    double roofAreaSqft = double.tryParse(_roofAreaController.text) ?? 0;
-    double roofAreaSqm = roofAreaSqft * 0.092903; // convert to m²
+    double roofAreaSqm = double.tryParse(_roofAreaController.text) ?? 0;
 
-    // rainfall and aquifer data
     Map<String, dynamic> rainfallData = await _fetchRainfallData(location);
     double annualRainfall = (rainfallData['annual'] ?? 1000.0) as double;
 
@@ -251,140 +293,101 @@ class _RooftopRainwaterHarvestingFormState extends State<RooftopRainwaterHarvest
     final aquiferData = await fetchAquiferData(location);
     String aquiferType = aquiferData?["aquifer"] ?? "Unconfined Aquifer";
 
-    // harvested water vs demand
     double potentialLiters = calculateWaterHarvested(
       annualRainfall: annualRainfall,
       roofAreaSqm: roofAreaSqm,
       roofType: _roofType,
     );
-    // double annualDemand = dwellers * 135 * 365; // Not used in current implementation
 
-    // structure selection
+    // ✅ classify structure
     String structureKey;
-    if (roofAreaSqm <= 100) {
-      structureKey = "smallsurface";
-    } else if (roofAreaSqm <= 250) {
-      structureKey = "smallmediumsurface";
-    } else if (roofAreaSqm <= 500) {
-      structureKey = "mediumsurface";
-    } else if (roofAreaSqm <= 2000) {
-      structureKey = "largesurface";
+    if (roofAreaSqm <= 1000 && potentialLiters <= 50000) {
+      structureKey = "small";
+    } else if ((roofAreaSqm > 1000 && roofAreaSqm <= 5000) ||
+        (potentialLiters > 50000 && potentialLiters <= 150000)) {
+      structureKey = "medium";
     } else {
-      structureKey = "largesurface"; // fallback for >2000
+      structureKey = "large";
     }
 
-    structureKey = normalizeStructure(structureKey);
-
-    // filter and pipe defaults
-    String filterKey = normalizeFilter(_selectedFilterType ?? "sandfilter");
+    String filterKey = "Rainy";
     String pipeType = "pvc";
 
-    // pipe length & base cost
     int numberOfFloors = int.tryParse(_noOfFloors.text) ?? 1;
     String roofShape = _selectedRoofShape ?? "Flat Roof";
+
     double pipeLength = calculatePipeLength(
       numberOfFloors: numberOfFloors,
       roofShape: roofShape,
     );
-    double unitPipeCost = getPipeUnitCost(pipeType);
-    double pipeCost = calculatePipeCost(
-      totalLength: pipeLength,
-      unitCostPerMeter: unitPipeCost,
-    );
 
     // tank cost (cheapest brand)
-    String selectedTankBrand = plasticTankCost.entries
-        .reduce((a, b) => a.value < b.value ? a : b)
-        .key;
-    double tankCost = calculateTankCost(
-      capacityLiters: potentialLiters,
-      brand: selectedTankBrand,
-    );
+    String selectedTankBrand =
+        plasticTankCost.entries.reduce((a, b) => a.value < b.value ? a : b).key;
+    double tankCost =
+        calculateTankCost(capacityLiters: potentialLiters, brand: selectedTankBrand);
 
-    // initialize costs
     double installationCost = 0.0;
-    double totalCost = 0.0;
     double filterCost = 0.0;
-
-    String roofRange = getRoofAreaRangeFromSqm(roofAreaSqft);
+    double materialCost = 0.0;
+    double pipeCost = 0.0;
+    double totalCost = 0.0;
 
     try {
       final data = await loadRooftopCostData();
+      final candidates = data.where((row) {
+        String rowStructure = (row['Structure'] ?? row['structure'] ?? '')
+            .toString()
+            .toLowerCase();
+        return rowStructure == structureKey;
+      }).toList();
 
-      final match = data.firstWhere((row) {
-        String rowStructure =
-            normalizeStructure((row['Structure'] ?? row['structure'] ?? '').toString());
-        String rowRoofRange =
-            (row['roofarearange'] ?? row['roofAreaRange'] ?? '').toString();
-        String rowPipeType =
-            (row['pipetype'] ?? row['pipeType'] ?? '').toString().toLowerCase();
-        String rowFilter =
-            normalizeFilter((row['filter'] ?? row['filtertype'] ?? '').toString());
+      if (candidates.isNotEmpty) {
+        Map bestRow = {};
+        double bestTotal = double.infinity;
 
-        return rowStructure == structureKey &&
-            rowRoofRange == roofRange &&
-            rowPipeType == pipeType.toLowerCase() &&
-            rowFilter == filterKey;
-      }, orElse: () => {});
+        for (var row in candidates) {
+          double inst =
+              double.tryParse(row['installationcost'].toString()) ?? 0.0;
+          double filtUnit =
+              double.tryParse(row['filtercost'].toString()) ?? 0.0;
+          int qty = int.tryParse(row['quantityoffilter'].toString()) ?? 1;
+          double filt = filtUnit * qty;
+          double mat = double.tryParse(row['material'].toString()) ?? 0.0;
 
-      if (match.isNotEmpty) {
-        final m = match as Map;
-
-        installationCost = (m['installationcost'] != null)
-            ? (m['installationcost'] as num).toDouble()
-            : 0.0;
-
-        filterCost = (m['filtercost'] != null)
-            ? (m['filtercost'] as num).toDouble()
-            : 0.0;
-
-        // double labourCost = (m['labourcost'] != null)
-        //     ? (m['labourcost'] as num).toDouble()
-        //     : 0.0; // Not used in current implementation
-
-        // ✅ Override pipe cost if JSON provides
-        double jsonPipecostPerM = 0.0;
-        if (m.containsKey('pipecost(m)')) {
-          jsonPipecostPerM = (m['pipecost(m)'] as num).toDouble();
-        } else if (m.containsKey('pipecost')) {
-          jsonPipecostPerM = (m['pipecost'] as num).toDouble();
-        }
-        if (jsonPipecostPerM > 0) {
-          unitPipeCost = jsonPipecostPerM;
-          pipeCost = calculatePipeCost(
+          double jsonPipecostPerM =
+              double.tryParse(row['pipecost(m)'].toString()) ?? 0.0;
+          double rowPipeCost = calculatePipeCost(
             totalLength: pipeLength,
-            unitCostPerMeter: unitPipeCost,
+            unitCostPerMeter:
+                jsonPipecostPerM > 0 ? jsonPipecostPerM : getPipeUnitCost(pipeType),
           );
-        }
 
-        // ✅ total cost calculation
-        if (m.containsKey('totalcost')) {
-          totalCost = (m['totalcost'] as num).toDouble();
-        } else {
-          totalCost = installationCost + filterCost + pipeCost + tankCost;
+          double rowTotal = inst + filt + rowPipeCost + mat + tankCost;
+
+          if (rowTotal < bestTotal) {
+            bestTotal = rowTotal;
+            bestRow = row;
+            installationCost = inst;
+            filterCost = filt;
+            materialCost = mat;
+            pipeCost = rowPipeCost;
+            totalCost = rowTotal;
+          }
         }
       }
 
-      // ✅ Fallback when costs are missing or 0
-      if (installationCost == 0.0 || filterCost == 0.0 || totalCost == 0.0) {
+      if (totalCost == 0.0) {
         final defaults = getDefaultCosts(structureKey);
-
-        if (installationCost == 0.0) {
-          installationCost = defaults["installation"]!;
-        }
-        if (filterCost == 0.0) {
-          filterCost = defaults["filter"]!;
-        }
-        if (totalCost == 0.0) {
-          totalCost = installationCost + filterCost + pipeCost + tankCost;
-        }
+        installationCost = defaults["installation"]!;
+        filterCost = defaults["filter"]!;
+        totalCost = installationCost + filterCost + pipeCost + materialCost + tankCost;
       }
     } catch (e) {
       debugPrint("Error during cost lookup: $e");
     }
 
     double savings = calculateSavings(potentialLiters);
-
     setState(() => _isLoading = false);
 
     final selectedFilterLabel = _selectedFilterType ?? filterKey;
@@ -401,10 +404,12 @@ class _RooftopRainwaterHarvestingFormState extends State<RooftopRainwaterHarvest
           pipeLength: pipeLength,
           pipeCost: pipeCost,
           filterCost: filterCost,
+          materialCost : materialCost,
           installationCost: installationCost,
           totalCost: totalCost,
           savings: savings,
           dwellers: dwellers,
+          tankCost:tankCost,
           roofArea: roofAreaSqm,
           groundwaterLevel: groundwaterLevel,
           aquiferType: aquiferType,
@@ -412,43 +417,10 @@ class _RooftopRainwaterHarvestingFormState extends State<RooftopRainwaterHarvest
         ),
       ),
     );
+  
   }
+  
 
-  // ✅ Fallback function: gives defaults based on structure
-  Map<String, double> getDefaultCosts(String structureKey) {
-    switch (structureKey) {
-      case "smallsurface":
-        return {
-          "installation": 2000,
-          "filter": 10000,
-        };
-      case "smallmediumsurface":
-        return {
-          "installation": 4000,
-          "filter": 15000,
-        };
-      case "mediumsurface":
-        return {
-          "installation": 6000,
-          "filter": 25000,
-        };
-      case "largesurface":
-        return {
-          "installation": 10000,
-          "filter": 30000,
-        };
-      case "arsurface":
-        return {
-          "installation": 8000,
-          "filter": 20000,
-        };
-      default:
-        return {
-          "installation": 5000,
-          "filter": 2000,
-        };
-    }
-  }
 
   Future<Map<String, dynamic>> _fetchRainfallData(String location) async {
     try {
@@ -524,51 +496,48 @@ class _RooftopRainwaterHarvestingFormState extends State<RooftopRainwaterHarvest
     return null;
   }
 
- @override
-Widget build(BuildContext context) {
-  final primaryColor = Theme.of(context).primaryColor;
+  @override
+  Widget build(BuildContext context) {
+    final primaryColor = Theme.of(context).primaryColor;
 
-  return Scaffold(
-    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-    appBar: AppBar(
-      flexibleSpace: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: Theme.of(context).brightness == Brightness.light
-                ? [
-                    primaryColor.withOpacity(0.9),
-                    primaryColor,
-                  ] // light theme gradient
-                : [Colors.black87, Colors.black], // dark theme gradient
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: Theme.of(context).brightness == Brightness.light
+                  ? [
+                      primaryColor.withOpacity(0.9),
+                      primaryColor,
+                    ] // light theme gradient
+                  : [Colors.black87, Colors.black], // dark theme gradient
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
         ),
+        title: const Text(
+          "RTRWH Assessment",
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        elevation: 0,
+        automaticallyImplyLeading: true, // ✅ enables back arrow automatically
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new),
+          onPressed: () => Navigator.pop(context), // ✅ go back
+        ),
       ),
-      title: const Text(
-        "RTRWH assessment page",
-        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [_buildForm(context)],
+        ),
       ),
-      centerTitle: true,
-      elevation: 0,
-      automaticallyImplyLeading: true, // ✅ enables back arrow automatically
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new),
-        onPressed: () => Navigator.pop(context), // ✅ go back
-      ),
-    ),
-    body: SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildForm(context),
-        ],
-      ),
-    ),
-  );
-}
-
+    );
+  }
 
   Widget _buildForm(BuildContext context) {
     final isWide = MediaQuery.of(context).size.width > 700;
@@ -670,14 +639,14 @@ Widget build(BuildContext context) {
                                 customTextField(
                                   context: context,
                                   controller: _roofAreaController,
-                                  hint: "Rooftop Area (sqft)",
+                                  hint: "Rooftop Area (sqm)",
                                   icon: Icons.roofing,
                                 ),
                                 const SizedBox(height: 12),
                                 customTextField(
                                   context: context,
                                   controller: _openSpaceController,
-                                  hint: "Open Space Area (sqft)",
+                                  hint: "Open Space Area (sqm)",
                                   icon: Icons.landscape,
                                 ),
                                 customTextField(
@@ -733,44 +702,46 @@ Widget build(BuildContext context) {
                                   ),
                                 ),
 
-                                buildExpandableSelector(
-                                  context: context,
-                                  title: 'Select Filter Type',
-                                  icon: Icons.filter_alt,
-                                  options: _filterOptions,
-                                  selectedValue: _selectedFilterType,
-                                  isExpanded: _isFilterExpanded,
-                                  onToggle: () => setState(
-                                    () => _isFilterExpanded =
-                                        !_isFilterExpanded,
-                                  ),
-                                  onChanged: (value) => setState(
-                                    () => _selectedFilterType = value,
-                                  ),
-                                ),
-
+                                // buildExpandableSelector(
+                                //   context: context,
+                                //   title: 'Select Filter Type',
+                                //   icon: Icons.filter_alt,
+                                //   options: _filterOptions,
+                                //   selectedValue: _selectedFilterType,
+                                //   isExpanded: _isFilterExpanded,
+                                //   onToggle: () => setState(
+                                //     () => _isFilterExpanded =
+                                //         !_isFilterExpanded,
+                                //   ),
+                                //   onChanged: (value) => setState(
+                                //     () => _selectedFilterType = value,
+                                //   ),
+                                // ),
                                 const SizedBox(height: 12),
-                                ElevatedButton.icon(
-                                  icon: const Icon(
-                                    Icons.upload,
-                                    color: Colors.white,
-                                  ),
-                                  label: const Text(
-                                    "Upload Roof Photo (optional)",
-                                    style: TextStyle(color: Colors.white),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Theme.of(
-                                      context,
-                                    ).primaryColor,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 14,
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    icon: const Icon(
+                                      Icons.upload,
+                                      color: Colors.white,
                                     ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
+                                    label: const Text(
+                                      "Upload Roof Photo (optional)",
+                                      style: TextStyle(color: Colors.white),
                                     ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Theme.of(
+                                        context,
+                                      ).primaryColor,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    onPressed: _pickImage,
                                   ),
-                                  onPressed: _pickImage,
                                 ),
                                 if (_roofImage != null)
                                   Padding(
@@ -796,8 +767,8 @@ Widget build(BuildContext context) {
                             selectedValue: _selectedRoofShape,
                             isExpanded: _isRoofShapeExpanded,
                             onToggle: () => setState(
-                              () => _isRoofShapeExpanded =
-                                  !_isRoofShapeExpanded,
+                              () =>
+                                  _isRoofShapeExpanded = !_isRoofShapeExpanded,
                             ),
                             onChanged: (value) => setState(
                               () => _selectedRoofShape = value ?? "Flat roof",
@@ -806,13 +777,13 @@ Widget build(BuildContext context) {
                           customTextField(
                             context: context,
                             controller: _roofAreaController,
-                            hint: "Rooftop Area (sqft)",
+                            hint: "Rooftop Area (sqm)",
                             icon: Icons.roofing,
                           ),
                           customTextField(
                             context: context,
                             controller: _openSpaceController,
-                            hint: "Open Space Area (sqft)",
+                            hint: "Open Space Area (sqm)",
                             icon: Icons.landscape,
                           ),
                           customTextField(
@@ -833,9 +804,8 @@ Widget build(BuildContext context) {
                               () => _isRoofMaterialExpanded =
                                   !_isRoofMaterialExpanded,
                             ),
-                            onChanged: (value) => setState(
-                              () => _roofType = value ?? "concrete",
-                            ),
+                            onChanged: (value) =>
+                                setState(() => _roofType = value ?? "concrete"),
                           ),
                           buildExpandableSelector(
                             context: context,
@@ -858,19 +828,14 @@ Widget build(BuildContext context) {
                           ),
                           const SizedBox(height: 12),
                           ElevatedButton.icon(
-                            icon: const Icon(
-                              Icons.upload,
-                              color: Colors.white,
-                            ),
+                            icon: const Icon(Icons.upload, color: Colors.white),
                             label: const Text(
                               "Upload Roof Photo (optional)",
                               style: TextStyle(color: Colors.white),
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Theme.of(context).primaryColor,
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 14,
-                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -879,9 +844,7 @@ Widget build(BuildContext context) {
                           ),
                           if (_roofImage != null)
                             Padding(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 8,
-                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 8),
                               child: Image.file(
                                 _roofImage!,
                                 height: 120,

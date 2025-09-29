@@ -35,7 +35,7 @@ jobs:
 
       # 6.5️⃣ Copy .env into web build so it’s deployed
       - name: Copy .env into web build
-        run: cp .env build/web/.env
+        run: cp .env build/web/assets/.env
 
       # 7️⃣ Deploy to Firebase Hosting
       - uses: FirebaseExtended/action-hosting-deploy@v0
