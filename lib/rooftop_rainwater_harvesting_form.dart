@@ -5,7 +5,6 @@ import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:aquacatch/components.dart';
 import 'result_page.dart';
 
