@@ -50,3 +50,33 @@ Future<Map<String, dynamic>?> fetchAquiferData(String district) async {
   }
 
   
+// validator functions
+
+String? validateNumber(String? value, String fieldName) {
+  if (value == null || value.trim().isEmpty) {
+    return '$fieldName is required';
+  }
+  final numValue = num.tryParse(value);
+  if (numValue == null || numValue <= 0) {
+    return 'Enter a valid positive number for $fieldName';
+  }
+  return null;
+}
+
+String? validateCity(String? value) {
+  if (value == null || value.trim().isEmpty) {
+    return 'City name is required';
+  }
+  final regex = RegExp(r'^[a-zA-Z\s]+$');
+  if (!regex.hasMatch(value.trim())) {
+    return 'Enter a valid city name (letters only)';
+  }
+  return null;
+}
+
+String? validateDropdown(String? value, String fieldName) {
+  if (value == null || value.isEmpty) {
+    return 'Please select $fieldName';
+  }
+  return null;
+}

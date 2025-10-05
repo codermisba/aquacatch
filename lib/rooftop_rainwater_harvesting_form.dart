@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:aquacatch/assessment_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -10,6 +11,7 @@ import 'result_page.dart';
 
 class RooftopRainwaterHarvestingForm extends StatefulWidget {
   const RooftopRainwaterHarvestingForm({super.key});
+  
 
   @override
   _RooftopRainwaterHarvestingFormState createState() =>
@@ -18,6 +20,8 @@ class RooftopRainwaterHarvestingForm extends StatefulWidget {
 
 class _RooftopRainwaterHarvestingFormState
     extends State<RooftopRainwaterHarvestingForm> {
+      final _formKey = GlobalKey<FormState>();
+
   String? _selectedRoofShape;
   bool _isRoofShapeExpanded = false;
 
@@ -40,6 +44,11 @@ class _RooftopRainwaterHarvestingFormState
       'value': 'rccfirstflushfilter',
       'label': 'RCC First Flush Filter',
       'image': 'assets/images/first_flush.png',
+    },
+    {
+      'value': 'Rainy',
+      'label': 'Rainy Filter',
+      'image': 'assets/images/rainy.jpg',
     },
   ];
 
@@ -84,7 +93,7 @@ class _RooftopRainwaterHarvestingFormState
       TextEditingController();
 
   String _city = "Solapur"; // default
-  String _roofType = "concrete";
+  String? _roofType;
 
   File? _roofImage;
   bool _isLoading = false;
@@ -295,7 +304,7 @@ double getPipeUnitCost(String pipeType) {
     double potentialLiters = calculateWaterHarvested(
       annualRainfall: annualRainfall,
       roofAreaSqm: roofAreaSqm,
-      roofType: _roofType,
+      roofType: _roofType!,
     );
 
     // ✅ classify structure
@@ -390,6 +399,7 @@ double getPipeUnitCost(String pipeType) {
     setState(() => _isLoading = false);
 
     final selectedFilterLabel = _selectedFilterType ?? filterKey;
+    debugPrint(selectedFilterLabel);
 
     Navigator.push(
       context,
@@ -528,11 +538,14 @@ double getPipeUnitCost(String pipeType) {
           onPressed: () => Navigator.pop(context), // ✅ go back
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [_buildForm(context)],
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [_buildForm(context)],
+          ),
         ),
       ),
     );
@@ -591,6 +604,7 @@ double getPipeUnitCost(String pipeType) {
                   controller: _locationController,
                   hint: "Location",
                   icon: Icons.location_city,
+                  validator: validateCity,
                 ),
                 const SizedBox(height: 8),
                 SizedBox(
@@ -619,6 +633,7 @@ double getPipeUnitCost(String pipeType) {
                   options: _locationTypeOptions,
                   selectedValue: _selectedLocationType,
                   isExpanded: _isLocationTypeExpanded,
+                  validator: (value) => validateDropdown(value, 'Location Type'),
                   onToggle: () => setState(
                     () => _isLocationTypeExpanded = !_isLocationTypeExpanded,
                   ),
@@ -626,6 +641,7 @@ double getPipeUnitCost(String pipeType) {
                     () => _selectedLocationType =
                         value ?? "urban", // default value
                   ),
+                  
                 ),
                 // Inputs in grid if wide
                 isWide
@@ -640,6 +656,7 @@ double getPipeUnitCost(String pipeType) {
                                   controller: _roofAreaController,
                                   hint: "Rooftop Area (sqm)",
                                   icon: Icons.roofing,
+                                  validator:(value) => validateNumber(value, 'Roof Area'),
                                 ),
                                 const SizedBox(height: 12),
                                 customTextField(
@@ -647,12 +664,14 @@ double getPipeUnitCost(String pipeType) {
                                   controller: _openSpaceController,
                                   hint: "Open Space Area (sqm)",
                                   icon: Icons.landscape,
+                                  validator: (value) => validateNumber(value, 'Open Space'),
                                 ),
                                 customTextField(
                                   context: context,
                                   controller: _noOfFloors,
                                   hint: "Enter no of floors",
                                   icon: Icons.business,
+                                  validator: (value) => validateNumber(value, 'Number of Floors'),
                                 ),
                                 const SizedBox(height: 12),
                                 customTextField(
@@ -660,6 +679,7 @@ double getPipeUnitCost(String pipeType) {
                                   controller: _dwellersController,
                                   hint: "Number of Dwellers",
                                   icon: Icons.people,
+                                  validator: (value) => validateNumber(value, 'Number of dwellers'),
                                 ),
                               ],
                             ),
@@ -672,9 +692,11 @@ double getPipeUnitCost(String pipeType) {
                                   context: context,
                                   title: 'Select Roof Shape',
                                   icon: Icons.home,
+                                  validator: (value) => validateDropdown(value, 'Roof shape'),
                                   options: _rooftopOptions,
                                   selectedValue: _selectedRoofShape,
                                   isExpanded: _isRoofShapeExpanded,
+                        
                                   onToggle: () => setState(
                                     () => _isRoofShapeExpanded =
                                         !_isRoofShapeExpanded,
@@ -692,6 +714,7 @@ double getPipeUnitCost(String pipeType) {
                                   options: _roofTypeOptions,
                                   selectedValue: _roofType,
                                   isExpanded: _isRoofMaterialExpanded,
+                                  validator: (value) => validateDropdown(value, 'Roof Type'),
                                   onToggle: () => setState(
                                     () => _isRoofMaterialExpanded =
                                         !_isRoofMaterialExpanded,
@@ -701,21 +724,22 @@ double getPipeUnitCost(String pipeType) {
                                   ),
                                 ),
 
-                                // buildExpandableSelector(
-                                //   context: context,
-                                //   title: 'Select Filter Type',
-                                //   icon: Icons.filter_alt,
-                                //   options: _filterOptions,
-                                //   selectedValue: _selectedFilterType,
-                                //   isExpanded: _isFilterExpanded,
-                                //   onToggle: () => setState(
-                                //     () => _isFilterExpanded =
-                                //         !_isFilterExpanded,
-                                //   ),
-                                //   onChanged: (value) => setState(
-                                //     () => _selectedFilterType = value,
-                                //   ),
-                                // ),
+                                buildExpandableSelector(
+                                  context: context,
+                                  title: 'Select Filter Type',
+                                  validator: (value) => validateDropdown(value, 'Roof Type'),
+                                  icon: Icons.filter_alt,
+                                  options: _filterOptions,
+                                  selectedValue: _selectedFilterType,
+                                  isExpanded: _isFilterExpanded,
+                                  onToggle: () => setState(
+                                    () => _isFilterExpanded =
+                                        !_isFilterExpanded,
+                                  ),
+                                  onChanged: (value) => setState(
+                                    () => _selectedFilterType = value,
+                                  ),
+                                ),
                                 const SizedBox(height: 12),
                                 SizedBox(
                                   width: double.infinity,
@@ -761,6 +785,7 @@ double getPipeUnitCost(String pipeType) {
                           buildExpandableSelector(
                             context: context,
                             title: 'Select Roof Shape',
+                            validator: (value) => validateDropdown(value, 'Roof shape'),
                             icon: Icons.home,
                             options: _rooftopOptions,
                             selectedValue: _selectedRoofShape,
@@ -799,6 +824,7 @@ double getPipeUnitCost(String pipeType) {
                             options: _roofTypeOptions,
                             selectedValue: _roofType,
                             isExpanded: _isRoofMaterialExpanded,
+                            validator: (value) => validateDropdown(value, 'Roof Material'),
                             onToggle: () => setState(
                               () => _isRoofMaterialExpanded =
                                   !_isRoofMaterialExpanded,
@@ -808,6 +834,7 @@ double getPipeUnitCost(String pipeType) {
                           ),
                           buildExpandableSelector(
                             context: context,
+                            validator: (value) => validateDropdown(value, 'Filter type'),
                             title: 'Select Filter Type',
                             icon: Icons.filter_alt,
                             options: _filterOptions,
@@ -877,7 +904,11 @@ double getPipeUnitCost(String pipeType) {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          onPressed: _navigateToResult,
+                          onPressed:() {
+                  if (_formKey.currentState!.validate()) {
+                    _navigateToResult();
+                  }
+                },
                         ),
                       ),
               ],

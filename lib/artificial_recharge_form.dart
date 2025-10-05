@@ -1,3 +1,4 @@
+import 'package:aquacatch/assessment_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -14,6 +15,8 @@ class ArtificialRechargeForm extends StatefulWidget {
 }
 
 class _ArtificialRechargeFormState extends State<ArtificialRechargeForm> {
+  final _formKey = GlobalKey<FormState>();
+
   String? _selectedRoofShape;
   String? _soilType;
   bool _isRoofMaterialExpanded = false;
@@ -47,7 +50,7 @@ class _ArtificialRechargeFormState extends State<ArtificialRechargeForm> {
   ];
 
   String _city = "Solapur"; // default
-  String _roofType = "concrete";
+  String? _roofType;
 
   bool _isLoading = false;
 
@@ -149,7 +152,7 @@ class _ArtificialRechargeFormState extends State<ArtificialRechargeForm> {
 
     double roofAreaSqm = double.tryParse(_roofAreaController.text) ?? 0;
 
-    double runoffCoeffAR = runoffCoeff[_roofType.toLowerCase()] ?? 0.75;
+    double runoffCoeffAR = runoffCoeff[_roofType?.toLowerCase()] ?? 0.75;
 
     // Simple recharge estimation
     double porosity = 0.45;
@@ -214,335 +217,352 @@ class _ArtificialRechargeFormState extends State<ArtificialRechargeForm> {
         ),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 800),
-            child: Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              elevation: 10,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.assessment_outlined,
-                      size: 80,
-                      color: primaryColor,
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      "Artificial Recharge Assessment",
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                elevation: 10,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.assessment_outlined,
+                        size: 80,
                         color: primaryColor,
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        "Location Details",
+                      const SizedBox(height: 10),
+                      Text(
+                        "Artificial Recharge Assessment",
                         style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
                           color: primaryColor,
                         ),
                       ),
-                    ),
-                    const Divider(),
-                    customTextField(
-                      context: context,
-                      controller: _locationController,
-                      hint: "Location",
-                      icon: Icons.location_city,
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        icon: const Icon(
-                          Icons.my_location,
-                          color: Colors.white,
-                        ),
-                        label: const Text(
-                          "Get My Location",
-                          style: TextStyle(color: Colors.white),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryColor,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      const SizedBox(height: 20),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          "Location Details",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: primaryColor,
                           ),
                         ),
-                        onPressed: _getCurrentLocation,
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    isWide
-                        ? Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  children: [
-                                    customTextField(
-                                      context: context,
-                                      controller: _roofAreaController,
-                                      hint: "Rooftop Area (sqm)",
-                                      icon: Icons.roofing,
-                                    ),
-                                    customTextField(
-                                      context: context,
-                                      controller: _openSpaceController,
-                                      hint: "Open Space Area (sqm)",
-                                      icon: Icons.landscape,
-                                    ),
-                                    const SizedBox(height: 12),
-                                    customTextField(
-                                      context: context,
-                                      controller: _noOfFloors,
-                                      hint: "Enter no of floors",
-                                      icon: Icons.business,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  children: [
-                                    buildExpandableSelector(
-                                      context: context,
-                                      title: 'Select Roof Shape',
-                                      icon: Icons.home,
-                                      options: _rooftopOptions,
-                                      selectedValue: _selectedRoofShape,
-                                      isExpanded: _isRoofShapeExpanded,
-                                      onToggle: () => setState(
-                                        () => _isRoofShapeExpanded =
-                                            !_isRoofShapeExpanded,
-                                      ),
-                                      onChanged: (value) => setState(
-                                        () => _selectedRoofShape =
-                                            value ?? "Flat Roof",
-                                      ),
-                                    ),
-                                    buildTextExpandableSelector(
-                                      context: context,
-                                      title: 'Select Roof Material',
-                                      icon: Icons.roofing,
-                                      options: _roofTypeOptions,
-                                      selectedValue: _roofType,
-                                      isExpanded: _isRoofMaterialExpanded,
-                                      onToggle: () => setState(
-                                        () => _isRoofMaterialExpanded =
-                                            !_isRoofMaterialExpanded,
-                                      ),
-                                      onChanged: (value) => setState(
-                                        () => _roofType = value ?? "concrete",
-                                      ),
-                                    ),
-                                    buildExpandableSelector(
-                                      context: context,
-                                      title: 'Select Soil Type',
-                                      icon: Icons.landscape,
-                                      options: [
-                                        {
-                                          'value': 'Alluvial soil',
-                                          'label': 'Alluvial soil',
-                                          'image': 'assets/images/alluvial.jpg',
-                                        },
-                                        {
-                                          'value': 'Black soil (Regur)',
-                                          'label': 'Black soil (Regur)',
-                                          'image':
-                                              'assets/images/black_soil.jpg',
-                                        },
-                                        {
-                                          'value': 'Red and Yellow soil',
-                                          'label': 'Red and Yellow soil',
-                                          'image':
-                                              'assets/images/red_yellow.JPG',
-                                        },
-                                        {
-                                          'value': 'Laterite soil',
-                                          'label': 'Laterite soil',
-                                          'image':
-                                              'assets/images/laterite_soil.jpg',
-                                        },
-                                        {
-                                          'value': 'Arid (Desert) soil',
-                                          'label': 'Arid (Desert) soil',
-                                          'image': 'assets/images/arid.jpg',
-                                        },
-                                        {
-                                          'value': 'Forest soil',
-                                          'label': 'Forest soil',
-                                          'image': 'assets/images/forest.jpg',
-                                        },
-                                        {
-                                          'value': 'Saline soil',
-                                          'label': 'Saline soil',
-                                          'image': 'assets/images/saline.jpg',
-                                        },
-                                        {
-                                          'value': 'Peaty soil',
-                                          'label': 'Peaty soil',
-                                          'image': 'assets/images/peaty.jpg',
-                                        },
-                                      ],
-                                      selectedValue: _soilType,
-                                      isExpanded: _isSoilTypeExpanded,
-                                      onToggle: () => setState(
-                                        () => _isSoilTypeExpanded =
-                                            !_isSoilTypeExpanded,
-                                      ),
-                                      onChanged: (value) => setState(
-                                        () => _soilType =
-                                            value ?? "Alluvial soil",
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          )
-                        : Column(
-                            children: [
-                              buildExpandableSelector(
-                                context: context,
-                                title: 'Select Roof Shape',
-                                icon: Icons.home,
-                                options: _rooftopOptions,
-                                selectedValue: _selectedRoofShape,
-                                isExpanded: _isRoofShapeExpanded,
-                                onToggle: () => setState(
-                                  () => _isRoofShapeExpanded =
-                                      !_isRoofShapeExpanded,
-                                ),
-                                onChanged: (value) => setState(
-                                  () =>
-                                      _selectedRoofShape = value ?? "Flat Roof",
-                                ),
-                              ),
-                              buildTextExpandableSelector(
-                                context: context,
-                                title: 'Select Roof Material',
-                                icon: Icons.roofing,
-                                options: _roofTypeOptions,
-                                selectedValue: _roofType,
-                                isExpanded: _isRoofMaterialExpanded,
-                                onToggle: () => setState(
-                                  () => _isRoofMaterialExpanded =
-                                      !_isRoofMaterialExpanded,
-                                ),
-                                onChanged: (value) => setState(
-                                  () => _roofType = value ?? "concrete",
-                                ),
-                              ),
-                              customTextField(
-                                context: context,
-                                controller: _openSpaceController,
-                                hint: "Open Space Area (sqft)",
-                                icon: Icons.landscape,
-                              ),
-                              customTextField(
-                                context: context,
-                                controller: _noOfFloors,
-                                hint: "Enter no of floors",
-                                icon: Icons.business,
-                              ),
-                              buildExpandableSelector(
-                                context: context,
-                                title: 'Select Soil Type',
-                                icon: Icons.landscape,
-                                options: [
-                                  {
-                                    'value': 'Alluvial soil',
-                                    'label': 'Alluvial soil',
-                                    'image': 'assets/images/alluvial.jpg',
-                                  },
-                                  {
-                                    'value': 'Black soil (Regur)',
-                                    'label': 'Black soil (Regur)',
-                                    'image': 'assets/images/black_soil.jpg',
-                                  },
-                                  {
-                                    'value': 'Red and Yellow soil',
-                                    'label': 'Red and Yellow soil',
-                                    'image': 'assets/images/red_yellow.JPG',
-                                  },
-                                  {
-                                    'value': 'Laterite soil',
-                                    'label': 'Laterite soil',
-                                    'image': 'assets/images/laterite_soil.jpg',
-                                  },
-                                  {
-                                    'value': 'Arid (Desert) soil',
-                                    'label': 'Arid (Desert) soil',
-                                    'image': 'assets/images/arid.jpg',
-                                  },
-                                  {
-                                    'value': 'Forest soil',
-                                    'label': 'Forest soil',
-                                    'image': 'assets/images/forest.jpg',
-                                  },
-                                  {
-                                    'value': 'Saline soil',
-                                    'label': 'Saline soil',
-                                    'image': 'assets/images/saline.jpg',
-                                  },
-                                  {
-                                    'value': 'Peaty soil',
-                                    'label': 'Peaty soil',
-                                    'image': 'assets/images/peaty.jpg',
-                                  },
-                                ],
-                                selectedValue: _soilType,
-                                isExpanded: _isSoilTypeExpanded,
-                                onToggle: () => setState(
-                                  () => _isSoilTypeExpanded =
-                                      !_isSoilTypeExpanded,
-                                ),
-                                onChanged: (value) => setState(
-                                  () => _soilType = value ?? "Alluvial soil",
-                                ),
-                              ),
-                            ],
+                      const Divider(),
+                      customTextField(
+                        context: context,
+                        controller: _locationController,
+                        hint: "Location",
+                        icon: Icons.location_city,
+                        validator: validateCity,
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          icon: const Icon(
+                            Icons.my_location,
+                            color: Colors.white,
                           ),
-                    const SizedBox(height: 28),
-                    _isLoading
-                        ? CircularProgressIndicator(color: primaryColor)
-                        : SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              icon: const Icon(
-                                Icons.file_present,
-                                color: Colors.white,
-                              ),
-                              label: const Text(
-                                "Generate Report",
-                                style: TextStyle(color: Colors.white),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: primaryColor,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              onPressed: _navigateToResult,
+                          label: const Text(
+                            "Get My Location",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                  ],
+                          onPressed: _getCurrentLocation,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      isWide
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    children: [
+                                      customTextField(
+                                        context: context,
+                                        controller: _roofAreaController,
+                                        hint: "Rooftop Area (sqm)",
+                                        icon: Icons.roofing,
+                                        validator:(value) => validateNumber(value, 'Roof Area'),
+                                      ),
+                                      customTextField(
+                                        context: context,
+                                        controller: _openSpaceController,
+                                        hint: "Open Space Area (sqm)",
+                                        validator:(value) => validateNumber(value, 'Open Space'),
+                                        icon: Icons.landscape,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      customTextField(
+                                        context: context,
+                                        controller: _noOfFloors,
+                                        hint: "Enter no of floors",
+                                        validator:(value) => validateNumber(value, 'No. of floors'),
+                                        icon: Icons.business,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    children: [
+                                      buildExpandableSelector(
+                                        context: context,
+                                        title: 'Select Roof Shape',
+                                        icon: Icons.home,
+                                        options: _rooftopOptions,
+                                        selectedValue: _selectedRoofShape,
+                                        isExpanded: _isRoofShapeExpanded,
+                                        validator: (value) => validateDropdown(value, 'Roof shape'),
+                                        onToggle: () => setState(
+                                          () => _isRoofShapeExpanded =
+                                              !_isRoofShapeExpanded,
+                                        ),
+                                        onChanged: (value) => setState(
+                                          () => _selectedRoofShape =
+                                              value ?? "Flat Roof",
+                                        ),
+                                      ),
+                                      buildTextExpandableSelector(
+                                        context: context,
+                                        title: 'Select Roof Material',
+                                        icon: Icons.roofing,
+                                        options: _roofTypeOptions,
+                                        selectedValue: _roofType,
+                                        isExpanded: _isRoofMaterialExpanded,
+                                        validator: (value) => validateDropdown(value, 'Roof Shape'),
+                                        onToggle: () => setState(
+                                          () => _isRoofMaterialExpanded =
+                                              !_isRoofMaterialExpanded,
+                                        ),
+                                        onChanged: (value) => setState(
+                                          () => _roofType = value ?? "concrete",
+                                        ),
+                                      ),
+                                      buildExpandableSelector(
+                                        context: context,
+                                        title: 'Select Soil Type',
+                                        validator: (value) => validateDropdown(value, 'soil Type'),
+                                        icon: Icons.landscape,
+                                        options: [
+                                          {
+                                            'value': 'Alluvial soil',
+                                            'label': 'Alluvial soil',
+                                            'image': 'assets/images/alluvial.jpg',
+                                          },
+                                          {
+                                            'value': 'Black soil (Regur)',
+                                            'label': 'Black soil (Regur)',
+                                            'image':
+                                                'assets/images/black_soil.jpg',
+                                          },
+                                          {
+                                            'value': 'Red and Yellow soil',
+                                            'label': 'Red and Yellow soil',
+                                            'image':
+                                                'assets/images/red_yellow.JPG',
+                                          },
+                                          {
+                                            'value': 'Laterite soil',
+                                            'label': 'Laterite soil',
+                                            'image':
+                                                'assets/images/laterite_soil.jpg',
+                                          },
+                                          {
+                                            'value': 'Arid (Desert) soil',
+                                            'label': 'Arid (Desert) soil',
+                                            'image': 'assets/images/arid.jpg',
+                                          },
+                                          {
+                                            'value': 'Forest soil',
+                                            'label': 'Forest soil',
+                                            'image': 'assets/images/forest.jpg',
+                                          },
+                                          {
+                                            'value': 'Saline soil',
+                                            'label': 'Saline soil',
+                                            'image': 'assets/images/saline.jpg',
+                                          },
+                                          {
+                                            'value': 'Peaty soil',
+                                            'label': 'Peaty soil',
+                                            'image': 'assets/images/peaty.jpg',
+                                          },
+                                        ],
+                                        selectedValue: _soilType,
+                                        isExpanded: _isSoilTypeExpanded,
+                                        onToggle: () => setState(
+                                          () => _isSoilTypeExpanded =
+                                              !_isSoilTypeExpanded,
+                                        ),
+                                        onChanged: (value) => setState(
+                                          () => _soilType =
+                                              value ?? "Alluvial soil",
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Column(
+                              children: [
+                                buildExpandableSelector(
+                                  context: context,
+                                  title: 'Select Roof Shape',
+                                  icon: Icons.home,
+                                  options: _rooftopOptions,
+                                  selectedValue: _selectedRoofShape,
+                                  isExpanded: _isRoofShapeExpanded,
+                                  validator: (value) => validateDropdown(value, 'Roof Type'),
+                                  onToggle: () => setState(
+                                    () => _isRoofShapeExpanded =
+                                        !_isRoofShapeExpanded,
+                                  ),
+                                  onChanged: (value) => setState(
+                                    () =>
+                                        _selectedRoofShape = value ?? "Flat Roof",
+                                  ),
+                                ),
+                                buildTextExpandableSelector(
+                                  context: context,
+                                  title: 'Select Roof Material',
+                                  icon: Icons.roofing,
+                                  options: _roofTypeOptions,
+                                  selectedValue: _roofType,
+                                  isExpanded: _isRoofMaterialExpanded,
+                                  validator: (value) => validateDropdown(value, 'Roof Type'),
+                                  onToggle: () => setState(
+                                    () => _isRoofMaterialExpanded =
+                                        !_isRoofMaterialExpanded,
+                                  ),
+                                  onChanged: (value) => setState(
+                                    () => _roofType = value ?? "concrete",
+                                  ),
+                                ),
+                                customTextField(
+                                  context: context,
+                                  controller: _openSpaceController,
+                                  hint: "Open Space Area (sqft)",
+                                  icon: Icons.landscape,
+                                ),
+                                customTextField(
+                                  context: context,
+                                  controller: _noOfFloors,
+                                  hint: "Enter no of floors",
+                                  icon: Icons.business,
+                                ),
+                                buildExpandableSelector(
+                                  context: context,
+                                  title: 'Select Soil Type',
+                                  validator: (value) => validateDropdown(value, 'Roof Type'),
+                                  icon: Icons.landscape,
+                                  options: [
+                                    {
+                                      'value': 'Alluvial soil',
+                                      'label': 'Alluvial soil',
+                                      'image': 'assets/images/alluvial.jpg',
+                                    },
+                                    {
+                                      'value': 'Black soil (Regur)',
+                                      'label': 'Black soil (Regur)',
+                                      'image': 'assets/images/black_soil.jpg',
+                                    },
+                                    {
+                                      'value': 'Red and Yellow soil',
+                                      'label': 'Red and Yellow soil',
+                                      'image': 'assets/images/red_yellow.JPG',
+                                    },
+                                    {
+                                      'value': 'Laterite soil',
+                                      'label': 'Laterite soil',
+                                      'image': 'assets/images/laterite_soil.jpg',
+                                    },
+                                    {
+                                      'value': 'Arid (Desert) soil',
+                                      'label': 'Arid (Desert) soil',
+                                      'image': 'assets/images/arid.jpg',
+                                    },
+                                    {
+                                      'value': 'Forest soil',
+                                      'label': 'Forest soil',
+                                      'image': 'assets/images/forest.jpg',
+                                    },
+                                    {
+                                      'value': 'Saline soil',
+                                      'label': 'Saline soil',
+                                      'image': 'assets/images/saline.jpg',
+                                    },
+                                    {
+                                      'value': 'Peaty soil',
+                                      'label': 'Peaty soil',
+                                      'image': 'assets/images/peaty.jpg',
+                                    },
+                                  ],
+                                  selectedValue: _soilType,
+                                  isExpanded: _isSoilTypeExpanded,
+                                  onToggle: () => setState(
+                                    () => _isSoilTypeExpanded =
+                                        !_isSoilTypeExpanded,
+                                  ),
+                                  onChanged: (value) => setState(
+                                    () => _soilType = value ?? "Alluvial soil",
+                                  ),
+                                ),
+                              ],
+                            ),
+                      const SizedBox(height: 28),
+                      _isLoading
+                          ? CircularProgressIndicator(color: primaryColor)
+                          : SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                icon: const Icon(
+                                  Icons.file_present,
+                                  color: Colors.white,
+                                ),
+                                label: const Text(
+                                  "Generate Report",
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: primaryColor,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed:() {
+                  if (_formKey.currentState!.validate()) {
+                    _navigateToResult();
+                  }
+                },
+                              ),
+                            ),
+                    ],
+                  ),
                 ),
               ),
             ),

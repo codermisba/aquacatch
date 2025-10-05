@@ -172,7 +172,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
                 const SizedBox(height: 20),
                 Text(
                   selectedAssessment == "Rooftop"
-                      ? "Rainwater Harvesting Assessment"
+                      ? "Rooftop Rainwater Harvesting Assessment"
                       : "Artificial Recharge Assessment",
                   textAlign: TextAlign.center,
                   style: TextStyle(
@@ -201,7 +201,7 @@ class _AssessmentPageState extends State<AssessmentPage> {
                       color: Colors.white,
                     ),
                     label: Text(
-                      "Start ${selectedAssessment == "Rooftop" ? "Rooftop" : "AR"} Assessment",
+                      "Start Assessment",
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
