@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:aquacatch/assessment_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -79,6 +80,13 @@ class _RooftopRainwaterHarvestingFormState
 
   String? _selectedLocationType;
   bool _isLocationTypeExpanded = false;
+
+  /// ---------------- Location-based water demand (liters/person/day) ----------------
+Map<String, double> get waterDemandPerPerson => {
+  "urban": 135,
+  "suburban": 90,
+  "rural": 70,
+};
 
   // Common Controllers
   final TextEditingController _locationController =
@@ -267,6 +275,30 @@ class _RooftopRainwaterHarvestingFormState
     return harvestedLiters * 0.5; // ₹0.5 per liter
   }
 
+  Map<String, double> calculateConcreteTankDimensions(double volumeLiters) {
+  double volumeCubicMeters = volumeLiters / 1000.0;
+  double height = 2.0; // Civiconcepts recommends 1.5–2.5m
+  double baseArea = volumeCubicMeters / height;
+  double width = sqrt(baseArea / 1.5); // width:length = 1:1.5
+  double length = 1.5 * width;
+
+  return {
+    'length_m': double.parse(length.toStringAsFixed(2)),
+    'width_m': double.parse(width.toStringAsFixed(2)),
+    'height_m': height,
+  };
+}
+
+
+double calculateConcreteTankCost({
+  required double volumeLiters,
+  double costPerCubicMeter = 6000, // Civiconcepts suggests ₹5000–₹8000/m³
+}) {
+  double volumeCubicMeters = volumeLiters / 1000.0;
+  return volumeCubicMeters * costPerCubicMeter;
+}
+
+
   // ✅ simplified fallback
   Map<String, double> getDefaultCosts(String structureKey) {
     switch (structureKey) {
@@ -286,152 +318,182 @@ double getPipeUnitCost(String pipeType) {
   return pipeCostData[pipeType.toLowerCase()] ?? 150;
 }
 
-  /// ---------------- Main calculation & navigation ----------------
-  Future<void> _navigateToResult() async {
-    setState(() => _isLoading = true);
 
-    String location = _locationController.text.trim();
-    int dwellers = int.tryParse(_dwellersController.text) ?? 1;
-    double roofAreaSqm = double.tryParse(_roofAreaController.text) ?? 0;
+/// ---------------- Main calculation & navigation ----------------
+Future<void> _navigateToResult() async {
+  setState(() => _isLoading = true);
 
-    Map<String, dynamic> rainfallData = await _fetchRainfallData(location);
-    double annualRainfall = (rainfallData['annual'] ?? 1000.0) as double;
+  String location = _locationController.text.trim();
+  int dwellers = int.tryParse(_dwellersController.text) ?? 1;
+  double roofAreaSqm = double.tryParse(_roofAreaController.text) ?? 0;
+  String locationType = _selectedLocationType?.toLowerCase() ?? "urban";
 
-    double groundwaterLevel = await fetchGroundwaterLevel(location);
-    final aquiferData = await fetchAquiferData(location);
-    String aquiferType = aquiferData?["aquifer"] ?? "Unconfined Aquifer";
+  Map<String, dynamic> rainfallData = await _fetchRainfallData(location);
+  double annualRainfall = (rainfallData['annual'] ?? 1000.0) as double;
 
-    double potentialLiters = calculateWaterHarvested(
-      annualRainfall: annualRainfall,
-      roofAreaSqm: roofAreaSqm,
-      roofType: _roofType!,
-    );
+  double groundwaterLevel = await fetchGroundwaterLevel(location);
+  final aquiferData = await fetchAquiferData(location);
+  String aquiferType = aquiferData?["aquifer"] ?? "Unconfined Aquifer";
 
-    // ✅ classify structure
-    String structureKey;
-    if (roofAreaSqm <= 1000 && potentialLiters <= 50000) {
-      structureKey = "small";
-    } else if ((roofAreaSqm > 1000 && roofAreaSqm <= 5000) ||
-        (potentialLiters > 50000 && potentialLiters <= 150000)) {
-      structureKey = "medium";
-    } else {
-      structureKey = "large";
-    }
+  // ---------------- Calculate required water demand ----------------
+  double dailyDemand = waterDemandPerPerson[locationType] ?? 100;
+  double totalDemandLiters = dailyDemand * dwellers * 30; // 30 days of water storage
 
-    String filterKey = "Rainy";
-    String pipeType = "pvc";
+  // ---------------- Calculate potential water harvested ----------------
+  double potentialLiters = calculateWaterHarvested(
+    annualRainfall: annualRainfall,
+    roofAreaSqm: roofAreaSqm,
+    roofType: _roofType!,
+  );
 
-    int numberOfFloors = int.tryParse(_noOfFloors.text) ?? 1;
-    String roofShape = _selectedRoofShape ?? "Flat Roof";
+  // ---------------- Civiconcepts approach — tank capacity = min(demand, harvested) ----------------
+  double requiredTankCapacityLiters =
+      potentialLiters < totalDemandLiters ? potentialLiters : totalDemandLiters;
 
-    double pipeLength = calculatePipeLength(
-      numberOfFloors: numberOfFloors,
-      roofShape: roofShape,
-    );
+  debugPrint(requiredTankCapacityLiters.toString());
 
-    // tank cost (cheapest brand)
-    String selectedTankBrand =
-        plasticTankCost.entries.reduce((a, b) => a.value < b.value ? a : b).key;
-    double tankCost =
-        calculateTankCost(capacityLiters: potentialLiters, brand: selectedTankBrand);
+  // ---------------- Structure classification ----------------
+  String structureKey;
+  if (roofAreaSqm <= 1000 && requiredTankCapacityLiters <= 50000) {
+    structureKey = "small";
+  } else if ((roofAreaSqm > 1000 && roofAreaSqm <= 5000) ||
+      (requiredTankCapacityLiters > 50000 && requiredTankCapacityLiters <= 150000)) {
+    structureKey = "medium";
+  } else {
+    structureKey = "large";
+  }
 
-    double installationCost = 0.0;
-    double filterCost = 0.0;
-    double materialCost = 0.0;
-    double pipeCost = 0.0;
-    double totalCost = 0.0;
+  String filterKey = "Rainy";
+  String pipeType = "pvc";
+  int numberOfFloors = int.tryParse(_noOfFloors.text) ?? 1;
+  String roofShape = _selectedRoofShape ?? "Flat Roof";
 
-    try {
-      final data = await loadRooftopCostData();
-      final candidates = data.where((row) {
-        String rowStructure = (row['Structure'] ?? row['structure'] ?? '')
-            .toString()
-            .toLowerCase();
-        return rowStructure == structureKey;
-      }).toList();
+  // ---------------- Pipe calculations ----------------
+  double pipeLength = calculatePipeLength(
+    numberOfFloors: numberOfFloors,
+    roofShape: roofShape,
+  );
 
-      if (candidates.isNotEmpty) {
-        Map bestRow = {};
-        double bestTotal = double.infinity;
+  // ---------------- Tank cost: Plastic ----------------
+  String selectedPlasticBrand =
+      plasticTankCost.entries.reduce((a, b) => a.value < b.value ? a : b).key;
+  double plasticTankCostValue = calculateTankCost(
+    capacityLiters: requiredTankCapacityLiters,
+    brand: selectedPlasticBrand,
+  );
 
-        for (var row in candidates) {
-          double inst =
-              double.tryParse(row['installationcost'].toString()) ?? 0.0;
-          double filtUnit =
-              double.tryParse(row['filtercost'].toString()) ?? 0.0;
-          int qty = int.tryParse(row['quantityoffilter'].toString()) ?? 1;
-          double filt = filtUnit * qty;
-          double mat = double.tryParse(row['material'].toString()) ?? 0.0;
+  // ---------------- Tank cost: Concrete + Dimensions ----------------
+  Map<String, double> concreteDims =
+      calculateConcreteTankDimensions(requiredTankCapacityLiters);
+  String concreteDimsStr =
+      "${concreteDims['length_m']}m × ${concreteDims['width_m']}m × ${concreteDims['height_m']}m";
 
-          double jsonPipecostPerM =
-              double.tryParse(row['pipecost(m)'].toString()) ?? 0.0;
-          double rowPipeCost = calculatePipeCost(
-            totalLength: pipeLength,
-            unitCostPerMeter:
-                jsonPipecostPerM > 0 ? jsonPipecostPerM : getPipeUnitCost(pipeType),
-          );
+  double concreteTankCostValue =
+      calculateConcreteTankCost(volumeLiters: requiredTankCapacityLiters);
 
-          double rowTotal = inst + filt + rowPipeCost + mat + tankCost;
+  // ---------------- Other cost components ----------------
+  double installationCost = 0.0;
+  double filterCost = 0.0;
+  double materialCost = 0.0;
+  double pipeCost = 0.0;
+  double totalCostPlastic = 0.0;
+  double totalCostConcrete = 0.0;
 
-          if (rowTotal < bestTotal) {
-            bestTotal = rowTotal;
-            bestRow = row;
-            installationCost = inst;
-            filterCost = filt;
-            materialCost = mat;
-            pipeCost = rowPipeCost;
-            totalCost = rowTotal;
-          }
+  try {
+    final data = await loadRooftopCostData();
+    final candidates = data.where((row) {
+      String rowStructure = (row['Structure'] ?? row['structure'] ?? '')
+          .toString()
+          .toLowerCase();
+      return rowStructure == structureKey;
+    }).toList();
+
+    if (candidates.isNotEmpty) {
+      Map bestRow = {};
+      double bestTotal = double.infinity;
+
+      for (var row in candidates) {
+        double inst =
+            double.tryParse(row['installationcost'].toString()) ?? 0.0;
+        double filtUnit =
+            double.tryParse(row['filtercost'].toString()) ?? 0.0;
+        int qty = int.tryParse(row['quantityoffilter'].toString()) ?? 1;
+        double filt = filtUnit * qty;
+        double mat = double.tryParse(row['material'].toString()) ?? 0.0;
+
+        double jsonPipecostPerM =
+            double.tryParse(row['pipecost(m)'].toString()) ?? 0.0;
+        double rowPipeCost = calculatePipeCost(
+          totalLength: pipeLength,
+          unitCostPerMeter:
+              jsonPipecostPerM > 0 ? jsonPipecostPerM : getPipeUnitCost(pipeType),
+        );
+
+        double rowTotal = inst + filt + rowPipeCost + mat;
+
+        if (rowTotal < bestTotal) {
+          bestTotal = rowTotal;
+          bestRow = row;
+          installationCost = inst;
+          filterCost = filt;
+          materialCost = mat;
+          pipeCost = rowPipeCost;
         }
       }
-
-      if (totalCost == 0.0) {
-        final defaults = getDefaultCosts(structureKey);
-        installationCost = defaults["installation"]!;
-        filterCost = defaults["filter"]!;
-        totalCost = installationCost + filterCost + pipeCost + materialCost + tankCost;
-      }
-    } catch (e) {
-      debugPrint("Error during cost lookup: $e");
     }
 
-    double savings = calculateSavings(potentialLiters);
-    setState(() => _isLoading = false);
-
-    final selectedFilterLabel = _selectedFilterType ?? filterKey;
-    debugPrint(selectedFilterLabel);
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ResultPage(
-          annualRainfall: annualRainfall,
-          potentialLiters: potentialLiters,
-          structure: structureKey,
-          filterType: selectedFilterLabel,
-          pipeType: pipeType,
-          pipeLength: pipeLength,
-          pipeCost: pipeCost,
-          filterCost: filterCost,
-          materialCost : materialCost,
-          installationCost: installationCost,
-          totalCost: totalCost,
-          savings: savings,
-          dwellers: dwellers,
-          tankCost:tankCost,
-          roofArea: roofAreaSqm,
-          groundwaterLevel: groundwaterLevel,
-          aquiferType: aquiferType,
-          city: location,
-        ),
-      ),
-    );
-  
+    // Fallback if no match
+    if (installationCost == 0.0 && filterCost == 0.0) {
+      final defaults = getDefaultCosts(structureKey);
+      installationCost = defaults["installation"]!;
+      filterCost = defaults["filter"]!;
+    }
+  } catch (e) {
+    debugPrint("Error during cost lookup: $e");
   }
-  
 
+  // ---------------- Combine total costs ----------------
+  totalCostPlastic =
+      installationCost + filterCost + materialCost + pipeCost + plasticTankCostValue;
+  totalCostConcrete =
+      installationCost + filterCost + materialCost + pipeCost + concreteTankCostValue;
 
-  Future<Map<String, dynamic>> _fetchRainfallData(String location) async {
+  double savings = calculateSavings(potentialLiters);
+  setState(() => _isLoading = false);
+
+  // ---------------- Navigate to Result Page ----------------
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => ResultPage(
+        city: location,
+        roofArea: roofAreaSqm,
+        dwellers: dwellers,
+        annualRainfall: annualRainfall,
+        groundwaterLevel: groundwaterLevel,
+        aquiferType: aquiferType,
+        potentialLiters: potentialLiters,
+        structure: structureKey,
+        filterType: _selectedFilterType ?? filterKey,
+        pipeType: pipeType,
+        pipeLength: pipeLength,
+        pipeCost: pipeCost,
+        filterCost: filterCost,
+        materialCost: materialCost,
+        installationCost: installationCost,
+        savings: savings,
+        requiredTankCapacityLiters : requiredTankCapacityLiters,
+        // 💧 Tank comparison
+        plasticTankCost: plasticTankCostValue,
+        concreteTankCost: concreteTankCostValue,
+        concreteDimensions: concreteDimsStr,
+        totalCostPlastic: totalCostPlastic,
+        totalCostConcrete: totalCostConcrete,  
+      ),
+    ),
+  );
+}
+ Future<Map<String, dynamic>> _fetchRainfallData(String location) async {
     try {
       final geoUrl = Uri.parse(
         "https://nominatim.openstreetmap.org/search?city=$location&country=India&format=json&limit=1",

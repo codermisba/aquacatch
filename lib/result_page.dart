@@ -21,17 +21,23 @@ class ResultPage extends StatefulWidget {
   final double pipeCost;
   final double filterCost;
   final double installationCost;
-  final double totalCost;
+  // final double totalCost;
+  final double requiredTankCapacityLiters;
   final double savings;
   final int dwellers;
-  final double tankCost;
   final double roofArea;
   final double materialCost;
   final double groundwaterLevel;
   final String aquiferType;
   final String city;
+  final double plasticTankCost;
+  final double concreteTankCost;
+  final String concreteDimensions;
+  final double totalCostPlastic;
+  final double totalCostConcrete;
 
-  const ResultPage({super.key, 
+  const ResultPage({
+    super.key,
     required this.annualRainfall,
     required this.potentialLiters,
     required this.structure,
@@ -41,17 +47,20 @@ class ResultPage extends StatefulWidget {
     required this.pipeCost,
     required this.filterCost,
     required this.installationCost,
-    required this.totalCost,
     required this.materialCost,
     required this.savings,
     required this.dwellers,
-    required this.tankCost,
     required this.roofArea,
     required this.groundwaterLevel,
     required this.aquiferType,
     required this.city,
+    required this.plasticTankCost,
+    required this.concreteTankCost,
+    required this.concreteDimensions,
+    required this.totalCostPlastic,
+    required this.totalCostConcrete, 
+    required this.requiredTankCapacityLiters,
   });
-
 
   @override
   State<ResultPage> createState() => _ResultPageState();
@@ -72,14 +81,13 @@ class _ResultPageState extends State<ResultPage> {
   Future<String> getBotResponseHF(String prompt) async {
     final url = Uri.parse("https://router.huggingface.co/v1/chat/completions");
     final payload = {
-  "model": hfModel,
-  "messages": [
-    {"role": "user", "content": prompt},
-  ],
-  "temperature": 0.7,
-  "max_tokens": 2000,  // Use max_tokens instead of max_new_tokens
-};
-
+      "model": hfModel,
+      "messages": [
+        {"role": "user", "content": prompt},
+      ],
+      "temperature": 0.7,
+      "max_tokens": 2000, // Use max_tokens instead of max_new_tokens
+    };
 
     try {
       final response = await http.post(
@@ -122,10 +130,10 @@ You are AquaBot, a water harvesting expert. Generate a professional, detailed wa
 - Pipe Cost: ₹${widget.pipeCost.toStringAsFixed(0)}
 - Filter Cost: ₹${widget.filterCost.toStringAsFixed(0)}
 - Installation Cost: ₹${widget.installationCost.toStringAsFixed(0)}
-- Tank cost : ₹${widget.tankCost.toStringAsFixed(0)}
+- Tank cost : ₹${widget.totalCostPlastic.toStringAsFixed(0)}
 - Material cost : ₹${widget.materialCost.toStringAsFixed(0)}
 
-- Total Cost: ₹${widget.totalCost.toStringAsFixed(0)}
+- Total Cost: ₹${widget.totalCostPlastic.toStringAsFixed(0)}
 - Expected Savings: ₹${widget.savings.toStringAsFixed(0)} per year
 - Number of Dwellers: ${widget.dwellers}
 - Groundwater Level: ${widget.groundwaterLevel} m
@@ -168,13 +176,18 @@ Strictly adhere to the given values. Do not make assumptions.
       "pipeCost": widget.pipeCost,
       "filterCost": widget.filterCost,
       "installationCost": widget.installationCost,
-      "totalCost": widget.totalCost,
       "savings": widget.savings,
       "dwellers": widget.dwellers,
       "roofArea": widget.roofArea,
       "groundwaterLevel": widget.groundwaterLevel,
       "aquiferType": widget.aquiferType,
       "city": widget.city,
+      "requiredTankCapacityLiters" : widget.requiredTankCapacityLiters,
+      "plasticTankCost": widget.plasticTankCost,
+      "concreteTankCost": widget.concreteTankCost,
+      "concreteDimensions": widget.concreteDimensions,
+      "totalCostPlastic": widget.totalCostPlastic,
+      "totalCostConcrete": widget.totalCostConcrete,
       "detailedReport": detailedReport,
       "timestamp": FieldValue.serverTimestamp(),
       "userId": user.uid,
@@ -377,32 +390,31 @@ Strictly adhere to the given values. Do not make assumptions.
   }
 
   // ---------------- Utility ----------------
- String getStructureLabel() {
-  switch (widget.structure.toLowerCase()) {
-    case "small":
-      return "Small Surface Tank";
-    case "medium":
-      return "Medium Surface/Underground Tank";
-    case "large":
-      return "Large Underground Tank";
-    default:
-      return widget.structure; // fallback
+  String getStructureLabel() {
+    switch (widget.structure.toLowerCase()) {
+      case "small":
+        return "Small Surface Tank";
+      case "medium":
+        return "Medium Surface/Underground Tank";
+      case "large":
+        return "Large Underground Tank";
+      default:
+        return widget.structure; // fallback
+    }
   }
-}
 
-String getStructureImage() {
-  switch (widget.structure.toLowerCase()) {
-    case "small":
-      return "assets/images/small.png";
-    case "medium":
-      return "assets/images/medium.jpg";
-    case "large":
-       return "assets/images/large.png";
-    default:
-      return "assets/images/small.jpg";
+  String getStructureImage() {
+    switch (widget.structure.toLowerCase()) {
+      case "small":
+        return "assets/images/small.png";
+      case "medium":
+        return "assets/images/medium.jpg";
+      case "large":
+        return "assets/images/large.png";
+      default:
+        return "assets/images/small.jpg";
+    }
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -522,91 +534,107 @@ String getStructureImage() {
                       "Filter Cost:",
                       "₹${widget.filterCost.toStringAsFixed(0)}",
                     ),
-                     _infoRow(
+                    _infoRow(
                       "Material Cost:",
                       "₹${widget.materialCost.toStringAsFixed(0)}",
+                    ),
+                     _infoRow(
+                      "Required Tank Capacity(Litre)",
+                      "${widget.requiredTankCapacityLiters.toStringAsFixed(0)}L",
                     ),
                     _infoRow(
                       "Installation Cost:",
                       "₹${widget.installationCost.toStringAsFixed(0)}",
                     ),
                     _infoRow(
-                      "Tank Cost:",
-                      "₹${widget.tankCost.toStringAsFixed(0)}",
+                      "Plastic Tank cost:",
+                      "₹${widget.plasticTankCost.toStringAsFixed(0)}",
                     ),
                     _infoRow(
-                      "Total Cost:",
-                      "₹${widget.totalCost.toStringAsFixed(0)}",
+                      "Concrete Tank Cost:",
+                      "₹${widget.concreteTankCost.toStringAsFixed(0)}",
+                    ),
+                    _infoRow(
+                      "Total Cost for Plastic Tank:",
+                      "₹${widget.totalCostPlastic.toStringAsFixed(0)}",
+                    ),
+                    _infoRow(
+                      "Total Cost For Concrete Tank:",
+                      "₹${widget.totalCostConcrete.toStringAsFixed(0)}",
+                    ),
+                    _infoRow(
+                      "Dimensions For Concrete Tank:",
+                      "${widget.concreteDimensions}(LxWxH)",
                     ),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 16),
-          //  FutureBuilder<String>(
-          //     future: _detailedReportFuture,
-          //     builder: (context, snapshot) {
-          //       if (snapshot.connectionState == ConnectionState.waiting) {
-          //         return Padding(
-          //           padding: EdgeInsets.all(16),
-          //           child: Center(
-          //             child: CircularProgressIndicator(
-          //               color: Theme.of(context).primaryColor,
-          //             ),
-          //           ),
-          //         );
-          //       }
-          //       if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          //         return const Text("Could not generate detailed report.");
-          //       }
-          //       return Card(
-          //         elevation: 4,
-          //         shape: RoundedRectangleBorder(
-          //           borderRadius: BorderRadius.circular(16),
-          //         ),
-          //         child: Padding(
-          //           padding: const EdgeInsets.all(16),
-          //           child: Column(
-          //             crossAxisAlignment: CrossAxisAlignment.start,
-          //             children: [
-          //               Text(
-          //                 "Detailed Report",
-          //                 style: TextStyle(
-          //                   fontSize: 18,
-          //                   fontWeight: FontWeight.bold,
-          //                   color: Theme.of(context).primaryColor,
-          //                 ),
-          //               ),
-          //               const SizedBox(height: 12),
-          //               MarkdownBody(
-          //                 data:snapshot.data!,
-          //                 selectable: true,
-          //                 styleSheet:
-          //                     MarkdownStyleSheet.fromTheme(
-          //                       Theme.of(context),
-          //                     ).copyWith(
-          //                       tableColumnWidth: const IntrinsicColumnWidth(),
-          //                       tableCellsPadding: const EdgeInsets.all(6),
-          //                       p: const TextStyle(fontSize: 14),
-          //                       h1: const TextStyle(
-          //                         fontSize: 20,
-          //                         fontWeight: FontWeight.bold,
-          //                       ),
-          //                       h2: const TextStyle(
-          //                         fontSize: 18,
-          //                         fontWeight: FontWeight.bold,
-          //                       ),
-          //                       strong: TextStyle(
-          //                         color: Theme.of(context).primaryColor,
-          //                       ),
-          //                     ),
-          //               ),
-          //             ],
-          //           ),
-          //         ),
-          //       );
-          //     },
-          //   ),
+            //  FutureBuilder<String>(
+            //     future: _detailedReportFuture,
+            //     builder: (context, snapshot) {
+            //       if (snapshot.connectionState == ConnectionState.waiting) {
+            //         return Padding(
+            //           padding: EdgeInsets.all(16),
+            //           child: Center(
+            //             child: CircularProgressIndicator(
+            //               color: Theme.of(context).primaryColor,
+            //             ),
+            //           ),
+            //         );
+            //       }
+            //       if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            //         return const Text("Could not generate detailed report.");
+            //       }
+            //       return Card(
+            //         elevation: 4,
+            //         shape: RoundedRectangleBorder(
+            //           borderRadius: BorderRadius.circular(16),
+            //         ),
+            //         child: Padding(
+            //           padding: const EdgeInsets.all(16),
+            //           child: Column(
+            //             crossAxisAlignment: CrossAxisAlignment.start,
+            //             children: [
+            //               Text(
+            //                 "Detailed Report",
+            //                 style: TextStyle(
+            //                   fontSize: 18,
+            //                   fontWeight: FontWeight.bold,
+            //                   color: Theme.of(context).primaryColor,
+            //                 ),
+            //               ),
+            //               const SizedBox(height: 12),
+            //               MarkdownBody(
+            //                 data:snapshot.data!,
+            //                 selectable: true,
+            //                 styleSheet:
+            //                     MarkdownStyleSheet.fromTheme(
+            //                       Theme.of(context),
+            //                     ).copyWith(
+            //                       tableColumnWidth: const IntrinsicColumnWidth(),
+            //                       tableCellsPadding: const EdgeInsets.all(6),
+            //                       p: const TextStyle(fontSize: 14),
+            //                       h1: const TextStyle(
+            //                         fontSize: 20,
+            //                         fontWeight: FontWeight.bold,
+            //                       ),
+            //                       h2: const TextStyle(
+            //                         fontSize: 18,
+            //                         fontWeight: FontWeight.bold,
+            //                       ),
+            //                       strong: TextStyle(
+            //                         color: Theme.of(context).primaryColor,
+            //                       ),
+            //                     ),
+            //               ),
+            //             ],
+            //           ),
+            //         ),
+            //       );
+            //     },
+            //   ),
             const SizedBox(height: 20),
 
             // Buttons
@@ -615,7 +643,10 @@ String getStructureImage() {
                 Expanded(
                   child: ElevatedButton.icon(
                     icon: const Icon(Icons.edit),
-                    label: const Text("Edit Inputs", style: TextStyle(fontSize: 16)),
+                    label: const Text(
+                      "Edit Inputs",
+                      style: TextStyle(fontSize: 16),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).primaryColor,
                     ),
