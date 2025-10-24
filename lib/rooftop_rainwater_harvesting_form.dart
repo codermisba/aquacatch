@@ -338,6 +338,7 @@ Future<void> _navigateToResult() async {
   // ---------------- Calculate required water demand ----------------
   double dailyDemand = waterDemandPerPerson[locationType] ?? 100;
   double totalDemandLiters = dailyDemand * dwellers * 30; // 30 days of water storage
+  double annualwaterDemand = dailyDemand * dwellers * 365;
 
   // ---------------- Calculate potential water harvested ----------------
   double potentialLiters = calculateWaterHarvested(
@@ -483,6 +484,9 @@ Future<void> _navigateToResult() async {
         installationCost: installationCost,
         savings: savings,
         requiredTankCapacityLiters : requiredTankCapacityLiters,
+        locationType: locationType,
+        annualwaterDemand: annualwaterDemand ,
+        dailyWaterDemand: dailyDemand,
         // 💧 Tank comparison
         plasticTankCost: plasticTankCostValue,
         concreteTankCost: concreteTankCostValue,

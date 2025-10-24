@@ -35,6 +35,9 @@ class ResultPage extends StatefulWidget {
   final String concreteDimensions;
   final double totalCostPlastic;
   final double totalCostConcrete;
+  final String locationType;
+  final double annualwaterDemand;
+  final double dailyWaterDemand;
 
   const ResultPage({
     super.key,
@@ -58,8 +61,11 @@ class ResultPage extends StatefulWidget {
     required this.concreteTankCost,
     required this.concreteDimensions,
     required this.totalCostPlastic,
-    required this.totalCostConcrete, 
+    required this.totalCostConcrete,
     required this.requiredTankCapacityLiters,
+    required this.locationType,
+    required this.annualwaterDemand,
+    required this.dailyWaterDemand,
   });
 
   @override
@@ -67,97 +73,39 @@ class ResultPage extends StatefulWidget {
 }
 
 class _ResultPageState extends State<ResultPage> {
-  final String? hfToken = dotenv.env['HF_TOKEN'];
-  final String hfModel = "deepseek-ai/DeepSeek-V3-0324";
+  
   late Future<String> _detailedReportFuture;
 
   @override
   void initState() {
     super.initState();
-    _detailedReportFuture = generateDetailedReport();
-  }
-
-  // ---------------- Hugging Face call ----------------
-  Future<String> getBotResponseHF(String prompt) async {
-    final url = Uri.parse("https://router.huggingface.co/v1/chat/completions");
-    final payload = {
-      "model": hfModel,
-      "messages": [
-        {"role": "user", "content": prompt},
-      ],
-      "temperature": 0.7,
-      "max_tokens": 2000, // Use max_tokens instead of max_new_tokens
-    };
-
-    try {
-      final response = await http.post(
-        url,
-        headers: {
-          "Authorization": "Bearer $hfToken",
-          "Content-Type": "application/json",
-        },
-        body: jsonEncode(payload),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data["choices"] != null && data["choices"].isNotEmpty) {
-          return data["choices"][0]["message"]["content"] ?? "No response.";
-        }
-      } else {
-        debugPrint("HF API Error: ${response.statusCode} - ${response.body}");
-      }
-      return "Could not generate detailed report.";
-    } catch (e) {
-      return "Error: $e";
-    }
-  }
-
-  // ---------------- Generate detailed AI report ----------------
-  Future<String> generateDetailedReport() async {
-    String prompt =
-        """
-You are AquaBot, a water harvesting expert. Generate a professional, detailed water harvesting report strictly using the given values. 
-
- Provided Details (use only these values):
-- Annual Rainfall: ${widget.annualRainfall} mm
-- Roof Area: ${widget.roofArea} m²
-- Potential Water Harvested: ${widget.potentialLiters} L
-- Structure Type: ${widget.structure}
-- Filter Type: ${widget.filterType}
-- Pipe Type: ${widget.pipeType}
-- Pipe Length: ${widget.pipeLength} m
-- Pipe Cost: ₹${widget.pipeCost.toStringAsFixed(0)}
-- Filter Cost: ₹${widget.filterCost.toStringAsFixed(0)}
-- Installation Cost: ₹${widget.installationCost.toStringAsFixed(0)}
-- Tank cost : ₹${widget.totalCostPlastic.toStringAsFixed(0)}
-- Material cost : ₹${widget.materialCost.toStringAsFixed(0)}
-
-- Total Cost: ₹${widget.totalCostPlastic.toStringAsFixed(0)}
-- Expected Savings: ₹${widget.savings.toStringAsFixed(0)} per year
-- Number of Dwellers: ${widget.dwellers}
-- Groundwater Level: ${widget.groundwaterLevel} m
-- Aquifer Type: ${widget.aquiferType}
-- City: ${widget.city}
-
-### Instructions for the report:
-1. **Use ONLY the given values** for all costs, savings, and dimensions. Do not assume or generate new numeric values.  
-2. Format the report in with the following headings:
-   -  Overview
-   -  Cost Estimation
-   -  Water Savings
-   -  Groundwater & Soil
-   -  Environmental Impact
-   -  Recommendations
-3. Include a **Cost Estimation Table** comparing filter options if relevant, but use only the provided costs.  
-4. Clearly highlight the recommended structure and its benefits.  
-5. Provide practical suggestions for maximizing rainwater harvesting efficiency.  
-6. Use bullet points, subheadings, and tables where appropriate for clarity.
-
-Strictly adhere to the given values. Do not make assumptions.
-""";
-
-    return await getBotResponseHF(prompt);
+    _detailedReportFuture = Future.value(
+      generateReportTemplate({
+        'city': widget.city,
+        'groundwaterLevel': widget.groundwaterLevel,
+        'aquiferType': widget.aquiferType,
+        'annualRainfall': widget.annualRainfall,
+        'roofArea': widget.roofArea,
+        'potentialLiters': widget.potentialLiters,
+        'dwellers': widget.dwellers,
+        'structure': widget.structure,
+        'concreteDimensions': widget.concreteDimensions,
+        "plasticTankCost": widget.plasticTankCost,
+        "concreteTankCost": widget.concreteTankCost,
+        "totalCostPlastic": widget.totalCostPlastic,
+        "totalCostConcrete": widget.totalCostConcrete,
+        'pipeType': widget.pipeType,
+        'pipeCost': widget.pipeCost,
+        'filterType': widget.filterType,
+        'filterCost': widget.filterCost,
+        'installationCost': widget.installationCost,
+        'savings': widget.savings,
+        'AnnualwaterDemand': widget.annualwaterDemand,
+        'dailyWaterDemand' : widget.dailyWaterDemand,
+        'locationType' : widget.locationType,
+        
+      }),
+    );
   }
 
   // ---------------- Save to Firestore ----------------
@@ -182,7 +130,7 @@ Strictly adhere to the given values. Do not make assumptions.
       "groundwaterLevel": widget.groundwaterLevel,
       "aquiferType": widget.aquiferType,
       "city": widget.city,
-      "requiredTankCapacityLiters" : widget.requiredTankCapacityLiters,
+      "requiredTankCapacityLiters": widget.requiredTankCapacityLiters,
       "plasticTankCost": widget.plasticTankCost,
       "concreteTankCost": widget.concreteTankCost,
       "concreteDimensions": widget.concreteDimensions,
@@ -418,7 +366,7 @@ Strictly adhere to the given values. Do not make assumptions.
 
   @override
   Widget build(BuildContext context) {
-    double annualDemand = widget.dwellers * 135 * 365;
+    double annualDemand = widget.annualwaterDemand;
     double arVolume = (widget.potentialLiters > annualDemand)
         ? widget.potentialLiters - annualDemand
         : 0;
@@ -495,6 +443,10 @@ Strictly adhere to the given values. Do not make assumptions.
                     ),
                     const SizedBox(height: 12),
                     _infoRow(
+                      "Area Type:",
+                      widget.locationType,
+                    ),
+                    _infoRow(
                       "Roof Area:",
                       "${widget.roofArea.toStringAsFixed(1)} m²",
                     ),
@@ -506,6 +458,11 @@ Strictly adhere to the given values. Do not make assumptions.
                       "Potential Harvested Water:",
                       "${widget.potentialLiters.toStringAsFixed(1)} L",
                     ),
+                    _infoRow(
+                      "Daily Water Demand L/Person :",
+                      "${widget.dailyWaterDemand.toStringAsFixed(1)} L",
+                    ),
+
                     _infoRow(
                       "Annual Water Demand:",
                       "${annualDemand.toStringAsFixed(1)} L",
@@ -538,7 +495,7 @@ Strictly adhere to the given values. Do not make assumptions.
                       "Material Cost:",
                       "₹${widget.materialCost.toStringAsFixed(0)}",
                     ),
-                     _infoRow(
+                    _infoRow(
                       "Required Tank Capacity(Litre)",
                       "${widget.requiredTankCapacityLiters.toStringAsFixed(0)}L",
                     ),
@@ -571,70 +528,70 @@ Strictly adhere to the given values. Do not make assumptions.
               ),
             ),
             const SizedBox(height: 16),
-            //  FutureBuilder<String>(
-            //     future: _detailedReportFuture,
-            //     builder: (context, snapshot) {
-            //       if (snapshot.connectionState == ConnectionState.waiting) {
-            //         return Padding(
-            //           padding: EdgeInsets.all(16),
-            //           child: Center(
-            //             child: CircularProgressIndicator(
-            //               color: Theme.of(context).primaryColor,
-            //             ),
-            //           ),
-            //         );
-            //       }
-            //       if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            //         return const Text("Could not generate detailed report.");
-            //       }
-            //       return Card(
-            //         elevation: 4,
-            //         shape: RoundedRectangleBorder(
-            //           borderRadius: BorderRadius.circular(16),
-            //         ),
-            //         child: Padding(
-            //           padding: const EdgeInsets.all(16),
-            //           child: Column(
-            //             crossAxisAlignment: CrossAxisAlignment.start,
-            //             children: [
-            //               Text(
-            //                 "Detailed Report",
-            //                 style: TextStyle(
-            //                   fontSize: 18,
-            //                   fontWeight: FontWeight.bold,
-            //                   color: Theme.of(context).primaryColor,
-            //                 ),
-            //               ),
-            //               const SizedBox(height: 12),
-            //               MarkdownBody(
-            //                 data:snapshot.data!,
-            //                 selectable: true,
-            //                 styleSheet:
-            //                     MarkdownStyleSheet.fromTheme(
-            //                       Theme.of(context),
-            //                     ).copyWith(
-            //                       tableColumnWidth: const IntrinsicColumnWidth(),
-            //                       tableCellsPadding: const EdgeInsets.all(6),
-            //                       p: const TextStyle(fontSize: 14),
-            //                       h1: const TextStyle(
-            //                         fontSize: 20,
-            //                         fontWeight: FontWeight.bold,
-            //                       ),
-            //                       h2: const TextStyle(
-            //                         fontSize: 18,
-            //                         fontWeight: FontWeight.bold,
-            //                       ),
-            //                       strong: TextStyle(
-            //                         color: Theme.of(context).primaryColor,
-            //                       ),
-            //                     ),
-            //               ),
-            //             ],
-            //           ),
-            //         ),
-            //       );
-            //     },
-            //   ),
+            FutureBuilder<String>(
+              future: _detailedReportFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
+                  );
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Text("Could not generate detailed report.");
+                }
+                return Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Detailed Report",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        MarkdownBody(
+                          data: snapshot.data!,
+                          selectable: true,
+                          styleSheet:
+                              MarkdownStyleSheet.fromTheme(
+                                Theme.of(context),
+                              ).copyWith(
+                                tableColumnWidth: const IntrinsicColumnWidth(),
+                                tableCellsPadding: const EdgeInsets.all(6),
+                                p: const TextStyle(fontSize: 14),
+                                h1: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                h2: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                strong: TextStyle(
+                                  color: Theme.of(context).primaryColor,
+                                ),
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
             const SizedBox(height: 20),
 
             // Buttons
@@ -676,8 +633,32 @@ Strictly adhere to the given values. Do not make assumptions.
                       );
 
                       try {
-                        final detailedReport =
-                            await _detailedReportFuture; // reuse the existing report
+                        final detailedReport = generateReportTemplate({
+                          'city': widget.city,
+                          'groundwaterLevel': widget.groundwaterLevel,
+                          'aquiferType': widget.aquiferType,
+                          'annualRainfall': widget.annualRainfall,
+                          'roofArea': widget.roofArea,
+                          'potentialLiters': widget.potentialLiters,
+                          'dwellers': widget.dwellers,
+                          'structure': widget.structure,
+                          'concreteDimensions': widget.concreteDimensions,
+                          "plasticTankCost": widget.plasticTankCost,
+                          "concreteTankCost": widget.concreteTankCost,
+                          "totalCostPlastic": widget.totalCostPlastic,
+                          "totalCostConcrete": widget.totalCostConcrete,
+                          'pipeType': widget.pipeType,
+                          'pipeCost': widget.pipeCost,
+                          'filterType': widget.filterType,
+                          'filterCost': widget.filterCost,
+                          'installationCost': widget.installationCost,
+                          'savings': widget.savings,
+                          'AnnualwaterDemand': annualDemand,
+                          'locationType':widget.locationType,
+                          'dailyWaterDemand' : widget.dailyWaterDemand,
+                        });
+
+                        // await _detailedReportFuture; // reuse the existing report
                         await saveResultToFirebase(detailedReport);
                         await generatePdf(detailedReport); // pass it here
 
@@ -751,3 +732,89 @@ String cleanMarkdownForUI(String markdown) {
       .replaceAll(RegExp(r'\n{3,}'), '\n\n')
       .trim();
 }
+
+String generateReportTemplate(Map<String, dynamic> data) {
+  return '''
+# Rainwater Harvesting System Report
+
+---
+
+## 1. Location and Site Details
+**City:** ${data['city']}  
+**Location Type:** ${data['locationType']}  
+**Groundwater Level:** ${data['groundwaterLevel']}  
+**Aquifer Type:** ${data['aquiferType']}  
+
+---
+
+## 2. Rainfall and Catchment Information
+**Annual Rainfall:** ${data['annualRainfall']} mm  
+**Roof Catchment Area:** ${data['roofArea']} m²  
+**Estimated Water Harvested:** ${data['potentialLiters']} L/year  
+**Estimated Water Demand:** ${data['annualwaterDemand']} L/year  
+**Daily Water Demand per Person:** ${data['dailyWaterDemand']} L  
+**Number of Dwellers:** ${data['dwellers']}  
+
+> Based on local rainfall and available roof area, the estimated annual harvestable water is approximately **${(data['potentialLiters'] / 1000).toStringAsFixed(2)} kiloliters**.
+
+---
+
+## 3. Tank Design and Capacity Details
+**Required Tank Capacity:** ${data['requiredTankCapacityLiters']} L  
+**Recommended Structure Type:** ${data['structure']}  
+**Concrete Tank Dimensions:** ${data['concreteDimensions']}  
+**Plastic Tank Cost:** ₹${data['plasticTankCost']}  
+**Concrete Tank Cost:** ₹${data['concreteTankCost']}  
+
+> The recommended tank capacity provides sufficient storage for approximately **30 days of domestic consumption** based on rainfall and water demand.
+
+---
+
+## 4. Components and Cost Estimation
+
+| Component | Type/Details | Cost (₹) |
+|------------|--------------|----------:|
+| Pipes | ${data['pipeType']} | ${data['pipeCost']} |
+| Filter | ${data['filterType']} | ${data['filterCost']} |
+| Installation | — | ${data['installationCost']} |
+| Material (Misc.) | — | ${data['materialCost']} |
+| **Total Cost (Plastic System)** |  | **₹${data['totalCostPlastic']}** |
+| **Total Cost (Concrete System)** |  | **₹${data['totalCostConcrete']}** |
+
+---
+
+## 5. Savings and Economic Analysis
+**Estimated Annual Savings:** ₹${data['savings']}  
+**Approximate Payback Period:** ${(data['totalCostConcrete'] / (data['savings'] + 1)).toStringAsFixed(1)} years  
+
+> Implementing a rainwater harvesting system can significantly reduce dependency on municipal supply, lower annual water expenditure, and support groundwater recharge.
+
+---
+
+## 6. Recommendations
+- For **${data['locationType']}** areas, a **${data['structure']}** tank structure is recommended.  
+- Ensure regular maintenance of the **roof catchment** and **first-flush filter systems** before each monsoon.  
+- Incorporate **overflow management** and **groundwater recharge pits** where feasible.  
+- Use harvested rainwater for **non-potable purposes** such as cleaning, gardening, and toilet flushing.  
+
+---
+
+## 7. Summary of Design Parameters
+
+| Parameter | Value |
+|------------|-------:|
+| Annual Rainfall (mm) | ${data['annualRainfall']} |
+| Roof Catchment Area (m²) | ${data['roofArea']} |
+| Tank Capacity (L) | ${data['requiredTankCapacityLiters']} |
+| Annual Water Demand (L) | ${data['annualwaterDemand']} |
+| Estimated Harvest (L) | ${data['potentialLiters']} |
+| Annual Savings (₹) | ${data['savings']} |
+
+---
+
+**Note:**  
+This report is generated using rainfall data, design parameters, and calculation principles derived from the *“Design of Rainwater Harvesting Water Tank”* methodology.
+
+''';
+}
+ 
