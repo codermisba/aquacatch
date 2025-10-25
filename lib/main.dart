@@ -20,24 +20,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
  
-  
-   // Load the correct env file
-  if (const bool.fromEnvironment('dart.vm.product')) {
-    // Production mode → load .env.production
-    await dotenv.load(fileName: ".env.production");
-  } else {
-    // Development → load local .env
-    await dotenv.load(fileName: ".env");
-  }
-
   final apiKey = dotenv.env['GEMINI_API_KEY'];
-  if (apiKey == null || apiKey.isEmpty) {
-    throw Exception("GEMINI_API_KEY is not set!");
-  }
+ 
 
-  Gemini.init(apiKey: apiKey);
+  Gemini.init(apiKey: apiKey!);
   runApp(const MyApp());
-   print(dotenv.env['GEMINI_API_KEY']);
 }
 
 class MyApp extends StatefulWidget {
