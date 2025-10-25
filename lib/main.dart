@@ -14,16 +14,13 @@ import 'educational pages/rooftop_rainwaterharvesting.dart';
 import 'educational pages/fresh_water.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'theme.dart';
-import 'package:flutter_gemini/flutter_gemini.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
- 
-  final apiKey = dotenv.env['GEMINI_API_KEY'];
- 
-
-  Gemini.init(apiKey: apiKey!);
+  
+    await dotenv.load(fileName: ".env"); // load locally for Android/iOS
+  
   runApp(const MyApp());
 }
 
