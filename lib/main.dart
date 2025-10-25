@@ -14,14 +14,30 @@ import 'educational pages/rooftop_rainwaterharvesting.dart';
 import 'educational pages/fresh_water.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'theme.dart';
+import 'package:flutter_gemini/flutter_gemini.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+ 
   
-    await dotenv.load(fileName: ".env"); // load locally for Android/iOS
-  
+   // Load the correct env file
+  if (const bool.fromEnvironment('dart.vm.product')) {
+    // Production mode → load .env.production
+    await dotenv.load(fileName: ".env.production");
+  } else {
+    // Development → load local .env
+    await dotenv.load(fileName: ".env");
+  }
+
+  final apiKey = dotenv.env['GEMINI_API_KEY'];
+  if (apiKey == null || apiKey.isEmpty) {
+    throw Exception("GEMINI_API_KEY is not set!");
+  }
+
+  Gemini.init(apiKey: apiKey);
   runApp(const MyApp());
+   print(dotenv.env['GEMINI_API_KEY']);
 }
 
 class MyApp extends StatefulWidget {

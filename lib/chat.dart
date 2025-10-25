@@ -1,8 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_gemini/flutter_gemini.dart';
+import 'package:flutter_math_fork/flutter_math.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -14,58 +13,23 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final gemini = Gemini.instance;
 
-  // Sample chat data
   List<Map<String, dynamic>> messages = [
     {'text': 'Hello! How can I help you today?', 'isBot': true},
   ];
 
-  Future<String> getBotResponseHF(String userInput) async {
-    
-    final String? hfToken = dotenv.env['HF_TOKEN'];
-    
-    final String hfModel = "deepseek-ai/DeepSeek-V3-0324";
-
-    final url = Uri.parse("https://router.huggingface.co/v1/chat/completions");
-
-    // Add a system message to define the bot's personality
-    final payload = {
-      "model": hfModel,
-      "messages": [
-        {
-          "role": "system",
-          "content":
-              "You are AquaBot, a friendly assistant for the Aquacatch app. "
-              "You help users with rooftop rainwater harvesting, artificial recharge, "
-              "calculating rainwater harvesting potential, recommending tanks, and answering related queries. "
-              "Always respond in a clear, concise, and friendly manner as AquaBot.",
-        },
-        {"role": "user", "content": userInput},
-      ],
-      "temperature": 0.7,
-  "max_tokens": 200,
-    };
-
+  Future<String> getBotResponseGemini(String userInput) async {
     try {
-      final response = await http.post(
-        url,
-        headers: {
-          "Authorization": "Bearer $hfToken",
-          "Content-Type": "application/json",
-        },
-        body: jsonEncode(payload),
+      final response = await gemini.text(
+        "You are AquaBot, a friendly assistant for the Aquacatch app. "
+        "You help users with rooftop rainwater harvesting, artificial recharge, "
+        "calculating rainwater harvesting potential, recommending tanks, and "
+        "answering related queries. Always respond clearly, concisely, and kindly.\n\n"
+        "User: $userInput",
       );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data["choices"] != null && data["choices"].isNotEmpty) {
-          return data["choices"][0]["message"]["content"] ?? "No response.";
-        }
-      } else {
-        print("HF API Error: ${response.statusCode} - ${response.body}");
-      }
-
-      return "Sorry, I couldn't get a response.";
+      return response?.output ?? "No response from Aquabot.";
     } catch (e) {
       return "Error: $e";
     }
@@ -80,18 +44,159 @@ class _ChatPageState extends State<ChatPage> {
       _controller.clear();
     });
 
-    getBotResponseHF(text).then((botReply) {
+    getBotResponseGemini(text).then((botReply) {
       setState(() {
         messages.add({'text': botReply, 'isBot': true});
       });
 
-      // Scroll to bottom
+      // scroll to bottom
       _scrollController.animateTo(
         _scrollController.position.maxScrollExtent + 100,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOut,
       );
     });
+  }
+
+  /// Build a widget for a message that may contain multiple math segments.
+  /// Math is recognized as $$...$$ (display) or $...$ (inline).
+  /// Non-math segments are rendered with MarkdownBody.
+  Widget _buildMessage(Map<String, dynamic> msg) {
+    final String text = msg['text'] as String;
+    final bool isBot = msg['isBot'] as bool;
+
+    // If it's a user message, just return plain text (no markdown/math parsing)
+    if (!isBot) {
+      return Text(
+        text,
+        style: const TextStyle(color: Colors.white, fontSize: 14),
+      );
+    }
+
+    // Regex: match either $$...$$ (multiline) OR $...$ (non-greedy single-dollar)
+    final regex = RegExp(r'(\${2}[\s\S]*?\${2}|\$[^$]*\$)');
+
+    final matches = regex.allMatches(text).toList();
+
+    // If no math matches, render entire text as Markdown
+    if (matches.isEmpty) {
+      return MarkdownBody(
+        data: text,
+        styleSheet: MarkdownStyleSheet(
+          p: const TextStyle(color: Colors.black, fontSize: 14),
+          strong: const TextStyle(fontWeight: FontWeight.bold),
+          em: const TextStyle(fontStyle: FontStyle.italic),
+          code: TextStyle(
+            backgroundColor: Colors.grey[300],
+            fontFamily: 'monospace',
+          ),
+          listBullet: const TextStyle(color: Colors.black, fontSize: 14),
+        ),
+      );
+    }
+
+    // Otherwise, split into alternating non-math and math parts
+    final List<Widget> parts = [];
+    int lastIndex = 0;
+
+    for (final m in matches) {
+      if (m.start > lastIndex) {
+        final nonMath = text.substring(lastIndex, m.start);
+        if (nonMath.trim().isNotEmpty) {
+          parts.add(
+            MarkdownBody(
+              data: nonMath,
+              styleSheet: MarkdownStyleSheet(
+                p: const TextStyle(color: Colors.black, fontSize: 14),
+                strong: const TextStyle(fontWeight: FontWeight.bold),
+                em: const TextStyle(fontStyle: FontStyle.italic),
+                code: TextStyle(
+                  backgroundColor: Colors.grey[300],
+                  fontFamily: 'monospace',
+                ),
+                listBullet: const TextStyle(color: Colors.black, fontSize: 14),
+              ),
+            ),
+          );
+        }
+      }
+
+      final matchText = m.group(0)!;
+
+      // Determine if display ($$) or inline ($)
+      bool isDisplay = matchText.startsWith(r'$$') && matchText.endsWith(r'$$');
+      String mathContent;
+      if (isDisplay) {
+        mathContent = matchText.substring(2, matchText.length - 2);
+      } else {
+        // strip single leading/trailing $
+        mathContent = matchText.substring(1, matchText.length - 1);
+      }
+
+      // Trim math content
+      mathContent = mathContent.trim();
+
+      // Add math widget. Wrap in horizontal scroll to avoid overflow for long formula.
+      try {
+        parts.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Math.tex(
+                mathContent,
+                textStyle: const TextStyle(fontSize: 14),
+                mathStyle: isDisplay ? MathStyle.display : MathStyle.text,
+              ),
+            ),
+          ),
+        );
+      } catch (e) {
+        // If Math parsing fails, show the raw match as Markdown fallback
+        parts.add(
+          MarkdownBody(
+            data: matchText,
+            styleSheet: MarkdownStyleSheet(
+              p: const TextStyle(color: Colors.black, fontSize: 14),
+            ),
+          ),
+        );
+      }
+
+      lastIndex = m.end;
+    }
+
+    // trailing non-math
+    if (lastIndex < text.length) {
+      final trailing = text.substring(lastIndex);
+      if (trailing.trim().isNotEmpty) {
+        parts.add(
+          MarkdownBody(
+            data: trailing,
+            styleSheet: MarkdownStyleSheet(
+              p: const TextStyle(color: Colors.black, fontSize: 14),
+              strong: const TextStyle(fontWeight: FontWeight.bold),
+              em: const TextStyle(fontStyle: FontStyle.italic),
+              code: TextStyle(
+                backgroundColor: Colors.grey[300],
+                fontFamily: 'monospace',
+              ),
+              listBullet: const TextStyle(color: Colors.black, fontSize: 14),
+            ),
+          ),
+        );
+      }
+    }
+
+    // If only one part, return it directly
+    if (parts.length == 1) return parts.first;
+
+    // Otherwise stack parts vertically (preserves message box layout)
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: parts,
+    );
   }
 
   @override
@@ -109,46 +214,39 @@ class _ChatPageState extends State<ChatPage> {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              itemCount: messages.length,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              itemBuilder: (context, index) {
-                final msg = messages[index];
-                return Align(
-                  alignment: msg['isBot']
-                      ? Alignment.centerLeft
-                      : Alignment.centerRight,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 10,
-                    ),
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * 0.7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: msg['isBot'] ? Colors.grey[200] : Theme.of(context).primaryColor,
-                      borderRadius: BorderRadius.only(
-                        topLeft: const Radius.circular(12),
-                        topRight: const Radius.circular(12),
-                        bottomLeft: Radius.circular(msg['isBot'] ? 0 : 12),
-                        bottomRight: Radius.circular(msg['isBot'] ? 12 : 0),
+            child: Scrollbar(
+              controller: _scroll_controller_safe(),
+              thumbVisibility: true,
+              thickness: 6,
+              radius: const Radius.circular(10),
+              child: ListView.builder(
+                controller: _scroll_controller_safe(),
+                itemCount: messages.length,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                itemBuilder: (context, index) {
+                  final msg = messages[index];
+                  return Align(
+                    alignment: msg['isBot'] ? Alignment.centerLeft : Alignment.centerRight,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width * 0.7,
                       ),
-                    ),
-                    child: MarkdownBody(
-                      data: msg['text'],
-                      styleSheet: MarkdownStyleSheet(
-                        p: TextStyle(
-                          color: msg['isBot'] ? Colors.black : Colors.white,
-                          fontSize: 14,
+                      decoration: BoxDecoration(
+                        color: msg['isBot'] ? Colors.grey[200] : Theme.of(context).primaryColor,
+                        borderRadius: BorderRadius.only(
+                          topLeft: const Radius.circular(12),
+                          topRight: const Radius.circular(12),
+                          bottomLeft: Radius.circular(msg['isBot'] ? 0 : 12),
+                          bottomRight: Radius.circular(msg['isBot'] ? 12 : 0),
                         ),
                       ),
+                      child: _buildMessage(msg),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
           ),
           const Divider(height: 1),
@@ -170,10 +268,7 @@ class _ChatPageState extends State<ChatPage> {
                       ),
                       filled: true,
                       fillColor: Colors.grey[100],
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 0,
-                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
                     ),
                   ),
                 ),
@@ -192,4 +287,7 @@ class _ChatPageState extends State<ChatPage> {
       ),
     );
   }
+
+  // Helper to safely return the ScrollController (prevents using a null controller in two places).
+  ScrollController _scroll_controller_safe() => _scrollController;
 }
