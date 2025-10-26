@@ -869,18 +869,24 @@ Future<void> _navigateToResult() async {
                             controller: _roofAreaController,
                             hint: "Rooftop Area (sqm)",
                             icon: Icons.roofing,
+                            validator: (value) => validateNumber(value, 'roof area in sqm')
+
                           ),
+
                           customTextField(
                             context: context,
                             controller: _openSpaceController,
                             hint: "Open Space Area (sqm)",
                             icon: Icons.landscape,
+                            validator: (value) => validateNumber(value, 'open space in sqm')
+
                           ),
                           customTextField(
                             context: context,
                             controller: _noOfFloors,
                             hint: "Enter no of floors",
                             icon: Icons.business,
+                            validator: (value) => validateNumber(value, 'No. of floors')
                           ),
 
                           buildTextExpandableSelector(
@@ -900,8 +906,8 @@ Future<void> _navigateToResult() async {
                           ),
                           buildExpandableSelector(
                             context: context,
-                            validator: (value) => validateDropdown(value, 'Filter type'),
                             title: 'Select Filter Type',
+                            validator: (value) => validateDropdown(value, 'Roof Material'),
                             icon: Icons.filter_alt,
                             options: _filterOptions,
                             selectedValue: _selectedFilterType,
@@ -917,6 +923,8 @@ Future<void> _navigateToResult() async {
                             controller: _dwellersController,
                             hint: "Number of Dwellers",
                             icon: Icons.people,
+                            validator: (value) => validateNumber(value, "Number of Dwellers")
+
                           ),
                           const SizedBox(height: 12),
                           ElevatedButton.icon(

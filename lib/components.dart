@@ -91,7 +91,7 @@ Widget buildExpandableSelector({
   required bool isExpanded,
   required VoidCallback onToggle,
   required ValueChanged<String?> onChanged,
-  required String? Function(dynamic value) validator, // ✅ updated type
+ required Function(dynamic value) validator, // ✅ updated type
 }) {
   final crossAxisCount = 2;
 
