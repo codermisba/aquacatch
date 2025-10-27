@@ -12,7 +12,6 @@ import 'result_page.dart';
 
 class RooftopRainwaterHarvestingForm extends StatefulWidget {
   const RooftopRainwaterHarvestingForm({super.key});
-  
 
   @override
   _RooftopRainwaterHarvestingFormState createState() =>
@@ -21,7 +20,7 @@ class RooftopRainwaterHarvestingForm extends StatefulWidget {
 
 class _RooftopRainwaterHarvestingFormState
     extends State<RooftopRainwaterHarvestingForm> {
-      final _formKey = GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
 
   String? _selectedRoofShape;
   bool _isRoofShapeExpanded = false;
@@ -82,23 +81,19 @@ class _RooftopRainwaterHarvestingFormState
   bool _isLocationTypeExpanded = false;
 
   /// ---------------- Location-based water demand (liters/person/day) ----------------
-Map<String, double> get waterDemandPerPerson => {
-  "urban": 135,
-  "suburban": 90,
-  "rural": 70,
-};
+  Map<String, double> get waterDemandPerPerson => {
+    "urban": 135,
+    "suburban": 90,
+    "rural": 70,
+  };
 
   // Common Controllers
-  final TextEditingController _locationController =
-      TextEditingController();
+  final TextEditingController _locationController = TextEditingController();
   final TextEditingController _roofAreaController =
       TextEditingController(); // sqm direct
-  final TextEditingController _openSpaceController =
-      TextEditingController();
-  final TextEditingController _noOfFloors =
-      TextEditingController();
-  final TextEditingController _dwellersController =
-      TextEditingController();
+  final TextEditingController _openSpaceController = TextEditingController();
+  final TextEditingController _noOfFloors = TextEditingController();
+  final TextEditingController _dwellersController = TextEditingController();
 
   String _city = "Solapur"; // default
   String? _roofType;
@@ -193,7 +188,8 @@ Map<String, double> get waterDemandPerPerson => {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data.isNotEmpty) {
-          return double.tryParse(data[0]["groundwaterlevel"].toString()) ?? 15.0;
+          return double.tryParse(data[0]["groundwaterlevel"].toString()) ??
+              15.0;
         }
       }
     } catch (e) {
@@ -276,28 +272,26 @@ Map<String, double> get waterDemandPerPerson => {
   }
 
   Map<String, double> calculateConcreteTankDimensions(double volumeLiters) {
-  double volumeCubicMeters = volumeLiters / 1000.0;
-  double height = 2.0; // Civiconcepts recommends 1.5–2.5m
-  double baseArea = volumeCubicMeters / height;
-  double width = sqrt(baseArea / 1.5); // width:length = 1:1.5
-  double length = 1.5 * width;
+    double volumeCubicMeters = volumeLiters / 1000.0;
+    double height = 2.0; // Civiconcepts recommends 1.5–2.5m
+    double baseArea = volumeCubicMeters / height;
+    double width = sqrt(baseArea / 1.5); // width:length = 1:1.5
+    double length = 1.5 * width;
 
-  return {
-    'length_m': double.parse(length.toStringAsFixed(2)),
-    'width_m': double.parse(width.toStringAsFixed(2)),
-    'height_m': height,
-  };
-}
+    return {
+      'length_m': double.parse(length.toStringAsFixed(2)),
+      'width_m': double.parse(width.toStringAsFixed(2)),
+      'height_m': height,
+    };
+  }
 
-
-double calculateConcreteTankCost({
-  required double volumeLiters,
-  double costPerCubicMeter = 6000, // Civiconcepts suggests ₹5000–₹8000/m³
-}) {
-  double volumeCubicMeters = volumeLiters / 1000.0;
-  return volumeCubicMeters * costPerCubicMeter;
-}
-
+  double calculateConcreteTankCost({
+    required double volumeLiters,
+    double costPerCubicMeter = 6000, // Civiconcepts suggests ₹5000–₹8000/m³
+  }) {
+    double volumeCubicMeters = volumeLiters / 1000.0;
+    return volumeCubicMeters * costPerCubicMeter;
+  }
 
   // ✅ simplified fallback
   Map<String, double> getDefaultCosts(String structureKey) {
@@ -312,192 +306,208 @@ double calculateConcreteTankCost({
         return {"installation": 5000, "filter": 2000};
     }
   }
-// ---------------- Pipe Unit Cost fallback ----------------
-double getPipeUnitCost(String pipeType) {
-  Map<String, double> pipeCostData = {"pvc": 120, "gi": 300, "hdpe": 150};
-  return pipeCostData[pipeType.toLowerCase()] ?? 150;
-}
 
-
-/// ---------------- Main calculation & navigation ----------------
-Future<void> _navigateToResult() async {
-  setState(() => _isLoading = true);
-
-  String location = _locationController.text.trim();
-  int dwellers = int.tryParse(_dwellersController.text) ?? 1;
-  double roofAreaSqm = double.tryParse(_roofAreaController.text) ?? 0;
-  String locationType = _selectedLocationType?.toLowerCase() ?? "urban";
-
-  Map<String, dynamic> rainfallData = await _fetchRainfallData(location);
-  double annualRainfall = (rainfallData['annual'] ?? 1000.0) as double;
-
-  double groundwaterLevel = await fetchGroundwaterLevel(location);
-  final aquiferData = await fetchAquiferData(location);
-  String aquiferType = aquiferData?["aquifer"] ?? "Unconfined Aquifer";
-
-  // ---------------- Calculate required water demand ----------------
-  double dailyDemand = waterDemandPerPerson[locationType] ?? 100;
-  double totalDemandLiters = dailyDemand * dwellers * 30; // 30 days of water storage
-  double annualwaterDemand = dailyDemand * dwellers * 365;
-
-  // ---------------- Calculate potential water harvested ----------------
-  double potentialLiters = calculateWaterHarvested(
-    annualRainfall: annualRainfall,
-    roofAreaSqm: roofAreaSqm,
-    roofType: _roofType!,
-  );
-
-  // ---------------- Civiconcepts approach — tank capacity = min(demand, harvested) ----------------
-  double requiredTankCapacityLiters =
-      potentialLiters < totalDemandLiters ? potentialLiters : totalDemandLiters;
-
-  debugPrint(requiredTankCapacityLiters.toString());
-
-  // ---------------- Structure classification ----------------
-  String structureKey;
-  if (roofAreaSqm <= 1000 && requiredTankCapacityLiters <= 50000) {
-    structureKey = "small";
-  } else if ((roofAreaSqm > 1000 && roofAreaSqm <= 5000) ||
-      (requiredTankCapacityLiters > 50000 && requiredTankCapacityLiters <= 150000)) {
-    structureKey = "medium";
-  } else {
-    structureKey = "large";
+  // ---------------- Pipe Unit Cost fallback ----------------
+  double getPipeUnitCost(String pipeType) {
+    Map<String, double> pipeCostData = {"pvc": 120, "gi": 300, "hdpe": 150};
+    return pipeCostData[pipeType.toLowerCase()] ?? 150;
   }
 
-  String filterKey = "Rainy";
-  String pipeType = "pvc";
-  int numberOfFloors = int.tryParse(_noOfFloors.text) ?? 1;
-  String roofShape = _selectedRoofShape ?? "Flat Roof";
+  /// ---------------- Main calculation & navigation ----------------
+  Future<void> _navigateToResult() async {
+    setState(() => _isLoading = true);
 
-  // ---------------- Pipe calculations ----------------
-  double pipeLength = calculatePipeLength(
-    numberOfFloors: numberOfFloors,
-    roofShape: roofShape,
-  );
+    String location = _locationController.text.trim();
+    int dwellers = int.tryParse(_dwellersController.text) ?? 1;
+    double roofAreaSqm = double.tryParse(_roofAreaController.text) ?? 0;
+    String locationType = _selectedLocationType?.toLowerCase() ?? "urban";
 
-  // ---------------- Tank cost: Plastic ----------------
-  String selectedPlasticBrand =
-      plasticTankCost.entries.reduce((a, b) => a.value < b.value ? a : b).key;
-  double plasticTankCostValue = calculateTankCost(
-    capacityLiters: requiredTankCapacityLiters,
-    brand: selectedPlasticBrand,
-  );
+    Map<String, dynamic> rainfallData = await _fetchRainfallData(location);
+    double annualRainfall = (rainfallData['annual'] ?? 1000.0) as double;
 
-  // ---------------- Tank cost: Concrete + Dimensions ----------------
-  Map<String, double> concreteDims =
-      calculateConcreteTankDimensions(requiredTankCapacityLiters);
-  String concreteDimsStr =
-      "${concreteDims['length_m']}m × ${concreteDims['width_m']}m × ${concreteDims['height_m']}m";
+    double groundwaterLevel = await fetchGroundwaterLevel(location);
+    final aquiferData = await fetchAquiferData(location);
+    String aquiferType = aquiferData?["aquifer"] ?? "Unconfined Aquifer";
 
-  double concreteTankCostValue =
-      calculateConcreteTankCost(volumeLiters: requiredTankCapacityLiters);
+    // ---------------- Calculate required water demand ----------------
+    double dailyDemand = waterDemandPerPerson[locationType] ?? 100;
+    double totalDemandLiters =
+        dailyDemand * dwellers * 30; // 30 days of water storage
+    double annualwaterDemand = dailyDemand * dwellers * 365;
 
-  // ---------------- Other cost components ----------------
-  double installationCost = 0.0;
-  double filterCost = 0.0;
-  double materialCost = 0.0;
-  double pipeCost = 0.0;
-  double totalCostPlastic = 0.0;
-  double totalCostConcrete = 0.0;
+    // ---------------- Calculate potential water harvested ----------------
+    double potentialLiters = calculateWaterHarvested(
+      annualRainfall: annualRainfall,
+      roofAreaSqm: roofAreaSqm,
+      roofType: _roofType!,
+    );
 
-  try {
-    final data = await loadRooftopCostData();
-    final candidates = data.where((row) {
-      String rowStructure = (row['Structure'] ?? row['structure'] ?? '')
-          .toString()
-          .toLowerCase();
-      return rowStructure == structureKey;
-    }).toList();
+    // ---------------- Civiconcepts approach — tank capacity = min(demand, harvested) ----------------
+    double requiredTankCapacityLiters = potentialLiters < totalDemandLiters
+        ? potentialLiters
+        : totalDemandLiters;
 
-    if (candidates.isNotEmpty) {
-      Map bestRow = {};
-      double bestTotal = double.infinity;
+    debugPrint(requiredTankCapacityLiters.toString());
 
-      for (var row in candidates) {
-        double inst =
-            double.tryParse(row['installationcost'].toString()) ?? 0.0;
-        double filtUnit =
-            double.tryParse(row['filtercost'].toString()) ?? 0.0;
-        int qty = int.tryParse(row['quantityoffilter'].toString()) ?? 1;
-        double filt = filtUnit * qty;
-        double mat = double.tryParse(row['material'].toString()) ?? 0.0;
+    // ---------------- Structure classification ----------------
+    String structureKey;
+    if (roofAreaSqm <= 1000 && requiredTankCapacityLiters <= 50000) {
+      structureKey = "small";
+    } else if ((roofAreaSqm > 1000 && roofAreaSqm <= 5000) ||
+        (requiredTankCapacityLiters > 50000 &&
+            requiredTankCapacityLiters <= 150000)) {
+      structureKey = "medium";
+    } else {
+      structureKey = "large";
+    }
 
-        double jsonPipecostPerM =
-            double.tryParse(row['pipecost(m)'].toString()) ?? 0.0;
-        double rowPipeCost = calculatePipeCost(
-          totalLength: pipeLength,
-          unitCostPerMeter:
-              jsonPipecostPerM > 0 ? jsonPipecostPerM : getPipeUnitCost(pipeType),
-        );
+    String filterKey = "Rainy";
+    String pipeType = "pvc";
+    int numberOfFloors = int.tryParse(_noOfFloors.text) ?? 1;
+    String roofShape = _selectedRoofShape ?? "Flat Roof";
 
-        double rowTotal = inst + filt + rowPipeCost + mat;
+    // ---------------- Pipe calculations ----------------
+    double pipeLength = calculatePipeLength(
+      numberOfFloors: numberOfFloors,
+      roofShape: roofShape,
+    );
 
-        if (rowTotal < bestTotal) {
-          bestTotal = rowTotal;
-          bestRow = row;
-          installationCost = inst;
-          filterCost = filt;
-          materialCost = mat;
-          pipeCost = rowPipeCost;
+    // ---------------- Tank cost: Plastic ----------------
+    String selectedPlasticBrand = plasticTankCost.entries
+        .reduce((a, b) => a.value < b.value ? a : b)
+        .key;
+    double plasticTankCostValue = calculateTankCost(
+      capacityLiters: requiredTankCapacityLiters,
+      brand: selectedPlasticBrand,
+    );
+
+    // ---------------- Tank cost: Concrete + Dimensions ----------------
+    Map<String, double> concreteDims = calculateConcreteTankDimensions(
+      requiredTankCapacityLiters,
+    );
+    String concreteDimsStr =
+        "${concreteDims['length_m']}m × ${concreteDims['width_m']}m × ${concreteDims['height_m']}m";
+
+    double concreteTankCostValue = calculateConcreteTankCost(
+      volumeLiters: requiredTankCapacityLiters,
+    );
+
+    // ---------------- Other cost components ----------------
+    double installationCost = 0.0;
+    double filterCost = 0.0;
+    double materialCost = 0.0;
+    double pipeCost = 0.0;
+    double totalCostPlastic = 0.0;
+    double totalCostConcrete = 0.0;
+
+    try {
+      final data = await loadRooftopCostData();
+      final candidates = data.where((row) {
+        String rowStructure = (row['Structure'] ?? row['structure'] ?? '')
+            .toString()
+            .toLowerCase();
+        return rowStructure == structureKey;
+      }).toList();
+
+      if (candidates.isNotEmpty) {
+        Map bestRow = {};
+        double bestTotal = double.infinity;
+
+        for (var row in candidates) {
+          double inst =
+              double.tryParse(row['installationcost'].toString()) ?? 0.0;
+          double filtUnit =
+              double.tryParse(row['filtercost'].toString()) ?? 0.0;
+          int qty = int.tryParse(row['quantityoffilter'].toString()) ?? 1;
+          double filt = filtUnit * qty;
+          double mat = double.tryParse(row['material'].toString()) ?? 0.0;
+
+          double jsonPipecostPerM =
+              double.tryParse(row['pipecost(m)'].toString()) ?? 0.0;
+          double rowPipeCost = calculatePipeCost(
+            totalLength: pipeLength,
+            unitCostPerMeter: jsonPipecostPerM > 0
+                ? jsonPipecostPerM
+                : getPipeUnitCost(pipeType),
+          );
+
+          double rowTotal = inst + filt + rowPipeCost + mat;
+
+          if (rowTotal < bestTotal) {
+            bestTotal = rowTotal;
+            bestRow = row;
+            installationCost = inst;
+            filterCost = filt;
+            materialCost = mat;
+            pipeCost = rowPipeCost;
+          }
         }
       }
+
+      // Fallback if no match
+      if (installationCost == 0.0 && filterCost == 0.0) {
+        final defaults = getDefaultCosts(structureKey);
+        installationCost = defaults["installation"]!;
+        filterCost = defaults["filter"]!;
+      }
+    } catch (e) {
+      debugPrint("Error during cost lookup: $e");
     }
 
-    // Fallback if no match
-    if (installationCost == 0.0 && filterCost == 0.0) {
-      final defaults = getDefaultCosts(structureKey);
-      installationCost = defaults["installation"]!;
-      filterCost = defaults["filter"]!;
-    }
-  } catch (e) {
-    debugPrint("Error during cost lookup: $e");
+    // ---------------- Combine total costs ----------------
+    totalCostPlastic =
+        installationCost +
+        filterCost +
+        materialCost +
+        pipeCost +
+        plasticTankCostValue;
+    totalCostConcrete =
+        installationCost +
+        filterCost +
+        materialCost +
+        pipeCost +
+        concreteTankCostValue;
+
+    double savings = calculateSavings(potentialLiters);
+    setState(() => _isLoading = false);
+
+    // ---------------- Navigate to Result Page ----------------
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ResultPage(
+          city: location,
+          roofArea: roofAreaSqm,
+          dwellers: dwellers,
+          annualRainfall: annualRainfall,
+          groundwaterLevel: groundwaterLevel,
+          aquiferType: aquiferType,
+          potentialLiters: potentialLiters,
+          structure: structureKey,
+          filterType: _selectedFilterType ?? filterKey,
+          pipeType: pipeType,
+          pipeLength: pipeLength,
+          pipeCost: pipeCost,
+          filterCost: filterCost,
+          materialCost: materialCost,
+          installationCost: installationCost,
+          savings: savings,
+          requiredTankCapacityLiters: requiredTankCapacityLiters,
+          locationType: locationType,
+          annualwaterDemand: annualwaterDemand,
+          dailyWaterDemand: dailyDemand,
+          // 💧 Tank comparison
+          plasticTankCost: plasticTankCostValue,
+          concreteTankCost: concreteTankCostValue,
+          concreteDimensions: concreteDimsStr,
+          totalCostPlastic: totalCostPlastic,
+          totalCostConcrete: totalCostConcrete,
+        ),
+      ),
+    );
   }
 
-  // ---------------- Combine total costs ----------------
-  totalCostPlastic =
-      installationCost + filterCost + materialCost + pipeCost + plasticTankCostValue;
-  totalCostConcrete =
-      installationCost + filterCost + materialCost + pipeCost + concreteTankCostValue;
-
-  double savings = calculateSavings(potentialLiters);
-  setState(() => _isLoading = false);
-
-  // ---------------- Navigate to Result Page ----------------
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => ResultPage(
-        city: location,
-        roofArea: roofAreaSqm,
-        dwellers: dwellers,
-        annualRainfall: annualRainfall,
-        groundwaterLevel: groundwaterLevel,
-        aquiferType: aquiferType,
-        potentialLiters: potentialLiters,
-        structure: structureKey,
-        filterType: _selectedFilterType ?? filterKey,
-        pipeType: pipeType,
-        pipeLength: pipeLength,
-        pipeCost: pipeCost,
-        filterCost: filterCost,
-        materialCost: materialCost,
-        installationCost: installationCost,
-        savings: savings,
-        requiredTankCapacityLiters : requiredTankCapacityLiters,
-        locationType: locationType,
-        annualwaterDemand: annualwaterDemand ,
-        dailyWaterDemand: dailyDemand,
-        // 💧 Tank comparison
-        plasticTankCost: plasticTankCostValue,
-        concreteTankCost: concreteTankCostValue,
-        concreteDimensions: concreteDimsStr,
-        totalCostPlastic: totalCostPlastic,
-        totalCostConcrete: totalCostConcrete,  
-      ),
-    ),
-  );
-}
- Future<Map<String, dynamic>> _fetchRainfallData(String location) async {
+  Future<Map<String, dynamic>> _fetchRainfallData(String location) async {
     try {
       final geoUrl = Uri.parse(
         "https://nominatim.openstreetmap.org/search?city=$location&country=India&format=json&limit=1",
@@ -699,7 +709,8 @@ Future<void> _navigateToResult() async {
                   options: _locationTypeOptions,
                   selectedValue: _selectedLocationType,
                   isExpanded: _isLocationTypeExpanded,
-                  validator: (value) => validateDropdown(value, 'Location Type'),
+                  validator: (value) =>
+                      validateDropdown(value, 'Location Type'),
                   onToggle: () => setState(
                     () => _isLocationTypeExpanded = !_isLocationTypeExpanded,
                   ),
@@ -707,7 +718,6 @@ Future<void> _navigateToResult() async {
                     () => _selectedLocationType =
                         value ?? "urban", // default value
                   ),
-                  
                 ),
                 // Inputs in grid if wide
                 isWide
@@ -722,7 +732,8 @@ Future<void> _navigateToResult() async {
                                   controller: _roofAreaController,
                                   hint: "Rooftop Area (sqm)",
                                   icon: Icons.roofing,
-                                  validator:(value) => validateNumber(value, 'Roof Area'),
+                                  validator: (value) =>
+                                      validateNumber(value, 'Roof Area'),
                                 ),
                                 const SizedBox(height: 12),
                                 customTextField(
@@ -730,14 +741,16 @@ Future<void> _navigateToResult() async {
                                   controller: _openSpaceController,
                                   hint: "Open Space Area (sqm)",
                                   icon: Icons.landscape,
-                                  validator: (value) => validateNumber(value, 'Open Space'),
+                                  validator: (value) =>
+                                      validateNumber(value, 'Open Space'),
                                 ),
                                 customTextField(
                                   context: context,
                                   controller: _noOfFloors,
                                   hint: "Enter no of floors",
                                   icon: Icons.business,
-                                  validator: (value) => validateNumber(value, 'Number of Floors'),
+                                  validator: (value) =>
+                                      validateNumber(value, 'Number of Floors'),
                                 ),
                                 const SizedBox(height: 12),
                                 customTextField(
@@ -745,7 +758,10 @@ Future<void> _navigateToResult() async {
                                   controller: _dwellersController,
                                   hint: "Number of Dwellers",
                                   icon: Icons.people,
-                                  validator: (value) => validateNumber(value, 'Number of dwellers'),
+                                  validator: (value) => validateNumber(
+                                    value,
+                                    'Number of dwellers',
+                                  ),
                                 ),
                               ],
                             ),
@@ -758,11 +774,12 @@ Future<void> _navigateToResult() async {
                                   context: context,
                                   title: 'Select Roof Shape',
                                   icon: Icons.home,
-                                  validator: (value) => validateDropdown(value, 'Roof shape'),
+                                  validator: (value) =>
+                                      validateDropdown(value, 'Roof shape'),
                                   options: _rooftopOptions,
                                   selectedValue: _selectedRoofShape,
                                   isExpanded: _isRoofShapeExpanded,
-                        
+
                                   onToggle: () => setState(
                                     () => _isRoofShapeExpanded =
                                         !_isRoofShapeExpanded,
@@ -780,7 +797,8 @@ Future<void> _navigateToResult() async {
                                   options: _roofTypeOptions,
                                   selectedValue: _roofType,
                                   isExpanded: _isRoofMaterialExpanded,
-                                  validator: (value) => validateDropdown(value, 'Roof Type'),
+                                  validator: (value) =>
+                                      validateDropdown(value, 'Roof Type'),
                                   onToggle: () => setState(
                                     () => _isRoofMaterialExpanded =
                                         !_isRoofMaterialExpanded,
@@ -793,14 +811,15 @@ Future<void> _navigateToResult() async {
                                 buildExpandableSelector(
                                   context: context,
                                   title: 'Select Filter Type',
-                                  validator: (value) => validateDropdown(value, 'Roof Type'),
+                                  validator: (value) =>
+                                      validateDropdown(value, 'Roof Type'),
                                   icon: Icons.filter_alt,
                                   options: _filterOptions,
                                   selectedValue: _selectedFilterType,
                                   isExpanded: _isFilterExpanded,
                                   onToggle: () => setState(
-                                    () => _isFilterExpanded =
-                                        !_isFilterExpanded,
+                                    () =>
+                                        _isFilterExpanded = !_isFilterExpanded,
                                   ),
                                   onChanged: (value) => setState(
                                     () => _selectedFilterType = value,
@@ -851,7 +870,8 @@ Future<void> _navigateToResult() async {
                           buildExpandableSelector(
                             context: context,
                             title: 'Select Roof Shape',
-                            validator: (value) => validateDropdown(value, 'Roof shape'),
+                            validator: (value) =>
+                                validateDropdown(value, 'Roof shape'),
                             icon: Icons.home,
                             options: _rooftopOptions,
                             selectedValue: _selectedRoofShape,
@@ -869,8 +889,8 @@ Future<void> _navigateToResult() async {
                             controller: _roofAreaController,
                             hint: "Rooftop Area (sqm)",
                             icon: Icons.roofing,
-                            validator: (value) => validateNumber(value, 'roof area in sqm')
-
+                            validator: (value) =>
+                                validateNumber(value, 'roof area in sqm'),
                           ),
 
                           customTextField(
@@ -878,15 +898,16 @@ Future<void> _navigateToResult() async {
                             controller: _openSpaceController,
                             hint: "Open Space Area (sqm)",
                             icon: Icons.landscape,
-                            validator: (value) => validateNumber(value, 'open space in sqm')
-
+                            validator: (value) =>
+                                validateNumber(value, 'open space in sqm'),
                           ),
                           customTextField(
                             context: context,
                             controller: _noOfFloors,
                             hint: "Enter no of floors",
                             icon: Icons.business,
-                            validator: (value) => validateNumber(value, 'No. of floors')
+                            validator: (value) =>
+                                validateNumber(value, 'No. of floors'),
                           ),
 
                           buildTextExpandableSelector(
@@ -896,7 +917,8 @@ Future<void> _navigateToResult() async {
                             options: _roofTypeOptions,
                             selectedValue: _roofType,
                             isExpanded: _isRoofMaterialExpanded,
-                            validator: (value) => validateDropdown(value, 'Roof Material'),
+                            validator: (value) =>
+                                validateDropdown(value, 'Roof Material'),
                             onToggle: () => setState(
                               () => _isRoofMaterialExpanded =
                                   !_isRoofMaterialExpanded,
@@ -907,7 +929,8 @@ Future<void> _navigateToResult() async {
                           buildExpandableSelector(
                             context: context,
                             title: 'Select Filter Type',
-                            validator: (value) => validateDropdown(value, 'Roof Material'),
+                            validator: (value) =>
+                                validateDropdown(value, 'Roof Material'),
                             icon: Icons.filter_alt,
                             options: _filterOptions,
                             selectedValue: _selectedFilterType,
@@ -923,8 +946,8 @@ Future<void> _navigateToResult() async {
                             controller: _dwellersController,
                             hint: "Number of Dwellers",
                             icon: Icons.people,
-                            validator: (value) => validateNumber(value, "Number of Dwellers")
-
+                            validator: (value) =>
+                                validateNumber(value, "Number of Dwellers"),
                           ),
                           const SizedBox(height: 12),
                           ElevatedButton.icon(
@@ -940,7 +963,14 @@ Future<void> _navigateToResult() async {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            onPressed: _pickImage,
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Feature coming soon"),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            },
                           ),
                           if (_roofImage != null)
                             Padding(
@@ -978,11 +1008,11 @@ Future<void> _navigateToResult() async {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          onPressed:() {
-                  if (_formKey.currentState!.validate()) {
-                    _navigateToResult();
-                  }
-                },
+                          onPressed: () {
+                            if (_formKey.currentState!.validate()) {
+                              _navigateToResult();
+                            }
+                          },
                         ),
                       ),
               ],
