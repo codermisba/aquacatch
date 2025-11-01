@@ -33,22 +33,25 @@ Future<Map<String, dynamic>?> fetchAquiferData(String district) async {
  
  // ground water level
 
- Future<double> fetchGroundwaterLevel(String district) async {
-    try {
-      final url = Uri.parse("https://sheetdb.io/api/v1/x7eb8wzkxon0e?district_lower=${district.toLowerCase()}");
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data.isNotEmpty) {
-          return double.tryParse(data[0]["groundwaterlevel"].toString()) ?? 15.0;
-        }
+  Future<double> fetchGroundwaterLevel(String district) async {
+  try {
+    final url = Uri.parse(
+      "https://sheetdb.io/api/v1/x7eb8wzkxon0e/search?district=${Uri.encodeComponent(district.toLowerCase())}",
+    );
+
+    final response = await http.get(url);
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data.isNotEmpty) {
+        return double.tryParse(data[0]["groundwaterlevel"].toString()) ?? 15.0;
       }
-    } catch (e) {
-      debugPrint("Groundwater fetch error: $e");
     }
-    return 15.0; // fallback
+  } catch (e) {
+    debugPrint("Groundwater fetch error: $e");
   }
 
+  return 15.0; // fallback
+}
   
 // validator functions
 

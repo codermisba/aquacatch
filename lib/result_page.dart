@@ -73,7 +73,6 @@ class ResultPage extends StatefulWidget {
 }
 
 class _ResultPageState extends State<ResultPage> {
-  
   late Future<String> _detailedReportFuture;
 
   @override
@@ -86,9 +85,11 @@ class _ResultPageState extends State<ResultPage> {
         'aquiferType': widget.aquiferType,
         'annualRainfall': widget.annualRainfall,
         'roofArea': widget.roofArea,
+        'requiredTankCapacityLiters': widget.requiredTankCapacityLiters,
         'potentialLiters': widget.potentialLiters,
         'dwellers': widget.dwellers,
         'structure': widget.structure,
+        'materialCost': widget.materialCost,
         'concreteDimensions': widget.concreteDimensions,
         "plasticTankCost": widget.plasticTankCost,
         "concreteTankCost": widget.concreteTankCost,
@@ -100,10 +101,9 @@ class _ResultPageState extends State<ResultPage> {
         'filterCost': widget.filterCost,
         'installationCost': widget.installationCost,
         'savings': widget.savings,
-        'AnnualwaterDemand': widget.annualwaterDemand,
-        'dailyWaterDemand' : widget.dailyWaterDemand,
-        'locationType' : widget.locationType,
-        
+        'annualwaterDemand': widget.annualwaterDemand,
+        'locationType': widget.locationType,
+        'dailyWaterDemand': widget.dailyWaterDemand,
       }),
     );
   }
@@ -370,8 +370,9 @@ class _ResultPageState extends State<ResultPage> {
     double arVolume = (widget.potentialLiters > annualDemand)
         ? widget.potentialLiters - annualDemand
         : 0;
-    bool arNeeded = arVolume > 0;
 
+    // use groundwater level from widget
+    bool arNeeded = (widget.groundwaterLevel > 3) && (arVolume > 0);
     return Scaffold(
       appBar: AppBar(
         title: const Text("Report", style: TextStyle(color: Colors.white)),
@@ -442,10 +443,7 @@ class _ResultPageState extends State<ResultPage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _infoRow(
-                      "Area Type:",
-                      widget.locationType,
-                    ),
+                    _infoRow("Area Type:", widget.locationType),
                     _infoRow(
                       "Roof Area:",
                       "${widget.roofArea.toStringAsFixed(1)} m²",
@@ -639,11 +637,12 @@ class _ResultPageState extends State<ResultPage> {
                           'aquiferType': widget.aquiferType,
                           'annualRainfall': widget.annualRainfall,
                           'roofArea': widget.roofArea,
-                          'requiredTankCapacityLiters': widget.requiredTankCapacityLiters,
+                          'requiredTankCapacityLiters':
+                              widget.requiredTankCapacityLiters,
                           'potentialLiters': widget.potentialLiters,
                           'dwellers': widget.dwellers,
                           'structure': widget.structure,
-                          'materialCost' : widget.materialCost,
+                          'materialCost': widget.materialCost,
                           'concreteDimensions': widget.concreteDimensions,
                           "plasticTankCost": widget.plasticTankCost,
                           "concreteTankCost": widget.concreteTankCost,
@@ -656,8 +655,8 @@ class _ResultPageState extends State<ResultPage> {
                           'installationCost': widget.installationCost,
                           'savings': widget.savings,
                           'annualwaterDemand': widget.annualwaterDemand,
-                          'locationType':widget.locationType,
-                          'dailyWaterDemand' : widget.dailyWaterDemand,
+                          'locationType': widget.locationType,
+                          'dailyWaterDemand': widget.dailyWaterDemand,
                         });
 
                         // await _detailedReportFuture; // reuse the existing report
@@ -819,4 +818,3 @@ This report is generated using rainfall data, design parameters, and calculation
 
 ''';
 }
- 
