@@ -6,7 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:aquacatch/components.dart';
-
+import 'package:aquacatch/ARResultPage.dart';
 class ArtificialRechargeForm extends StatefulWidget {
   const ArtificialRechargeForm({super.key});
 
@@ -21,7 +21,6 @@ class _ArtificialRechargeFormState extends State<ArtificialRechargeForm> {
   String? _soilType;
   bool _isRoofMaterialExpanded = false;
   bool _isRoofShapeExpanded = false;
-  bool _isSoilTypeExpanded = false;
 
   final TextEditingController _noOfFloors = TextEditingController();
   final TextEditingController _openSpaceController =
@@ -60,6 +59,27 @@ class _ArtificialRechargeFormState extends State<ArtificialRechargeForm> {
     "tiledroof": 0.75,
     "concrete": 0.75,
   };
+
+double calculateRRWHPotential({
+  required double annualRainfall,
+  required double roofArea,
+  required double runoffCoefficient,
+}) {
+  // RRWH Potential (liters/year)
+  // Formula: Rainfall (mm) * area (sqm) * runoff coefficient
+  return annualRainfall * roofArea * runoffCoefficient;
+}
+
+
+double calculateARPotential({
+  required double annualRainfall,
+  required double roofArea,
+  required double porosity,
+  required double runoffCoefficient,
+}) {
+  // AR potential = rainfall * area * porosity * runoffCoeff
+  return annualRainfall * roofArea * porosity * runoffCoefficient;
+}
 
   /// ---------------- Location functions ----------------
   Future<void> _getCurrentLocation() async {
@@ -138,70 +158,267 @@ class _ArtificialRechargeFormState extends State<ArtificialRechargeForm> {
     return 15.0; // fallback
   }
 
-  Future<List<dynamic>> loadARCostData() async {
-    final String response = await rootBundle.loadString(
-      'assets/arcostdata.json',
-    );
-    final Map<String, dynamic> data = json.decode(response);
-    return data['Sheet1'] as List<dynamic>;
+   /// ------------------- API & Utility Functions -------------------
+
+  Future<Map<String, dynamic>> _fetchRainfallData(String location) async {
+    try {
+      final geoUrl = Uri.parse(
+        "https://nominatim.openstreetmap.org/search?city=$location&country=India&format=json&limit=1",
+      );
+      final geoResp = await http.get(
+        geoUrl,
+        headers: {"User-Agent": "RainHarvestApp/1.0"},
+      );
+      if (geoResp.statusCode != 200) return {'annual': 1000.0};
+
+      final geoData = json.decode(geoResp.body);
+      if (geoData.isEmpty) return {'annual': 1000.0};
+
+      double lat = double.parse(geoData[0]["lat"]);
+      double lon = double.parse(geoData[0]["lon"]);
+
+      DateTime today = DateTime.now();
+      DateTime lastYear = today.subtract(const Duration(days: 365));
+
+      String start =
+          "${lastYear.year}${lastYear.month.toString().padLeft(2, '0')}${lastYear.day.toString().padLeft(2, '0')}";
+      String end =
+          "${today.year}${today.month.toString().padLeft(2, '0')}${today.day.toString().padLeft(2, '0')}";
+
+      final nasaUrl = Uri.parse(
+        "https://power.larc.nasa.gov/api/temporal/daily/point?parameters=PRECTOTCORR&community=AG&longitude=$lon&latitude=$lat&start=$start&end=$end&format=JSON",
+      );
+
+      final nasaResp = await http.get(nasaUrl);
+      if (nasaResp.statusCode != 200) return {'annual': 1000.0};
+
+      final nasaData = json.decode(nasaResp.body);
+      Map<String, dynamic> values =
+          nasaData["properties"]["parameter"]["PRECTOTCORR"];
+
+      List<double> dailyRainfall = values.values
+          .map((e) => e == null ? 0.0 : (e as num).toDouble())
+          .map((e) => e < 0 ? 0.0 : e)
+          .toList();
+
+      double annualRainfall =
+          dailyRainfall.fold(0.0, (prev, e) => prev + e);
+
+      return {'annual': annualRainfall};
+    } catch (e) {
+      debugPrint("Rainfall error: $e");
+      return {'annual': 1000.0};
+    }
   }
+
+  Future<Map<String, dynamic>?> _fetchDistrictData(String district) async {
+    try {
+      final url = Uri.parse(
+        "https://sheetdb.io/api/v1/x7eb8wzkxon0e?district_lower=${Uri.encodeComponent(district.toLowerCase())}",
+      );
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data is List && data.isNotEmpty) {
+          final row = data[0] as Map<String, dynamic>;
+          return {
+            "groundwaterlevel":
+                double.tryParse(row["groundwaterlevel"].toString()) ?? 15.0,
+            "soiltype": row["soiltype"] ?? "unknown",
+            "porosity": double.tryParse(row["porosity"].toString()) ?? 0.40,
+            "evaporation":
+                double.tryParse(row["evaporation"].toString()) ?? 1200.0,
+          };
+        }
+      }
+    } catch (e) {
+      debugPrint("District data fetch error: $e");
+    }
+    // fallback defaults
+    return {
+      "groundwaterlevel": 15.0,
+      "soiltype": "unknown",
+      "porosity": 0.40,
+      "evaporation": 1200.0,
+    };
+  }
+
+  Future<List<Map<String, dynamic>>> fetchARDataFromAPI() async {
+  try {
+    final url = Uri.parse("https://sheetdb.io/api/v1/domso538f6dw7");
+    final response = await http.get(url);
+
+    if (response.statusCode != 200) {
+      debugPrint("AR API ERROR: ${response.statusCode}");
+      return [];
+    }
+    
+    final List decoded = json.decode(response.body);
+    debugPrint("AR API SAMPLE ROW: ${decoded.first.keys}");
+    return decoded.map((e) => Map<String, dynamic>.from(e)).toList();
+  } catch (e) {
+    debugPrint("AR API EXCEPTION: $e");
+    return [];
+  }
+  }
+
+ bool matchesRange(String rangeRaw, double roofArea) {
+  if (rangeRaw.toString().trim().isEmpty) return false;
+
+  final range = rangeRaw.trim();
+
+  if (range.contains("<=")) {
+    final limit = double.tryParse(range.replaceAll("<=", "").trim());
+    return limit != null && roofArea <= limit;
+  }
+
+  if (range.contains("-")) {
+    final parts = range.split("-");
+    if (parts.length == 2) {
+      final start = double.tryParse(parts[0].trim());
+      final end = double.tryParse(parts[1].trim());
+      return start != null && end != null && roofArea >= start && roofArea <= end;
+    }
+  }
+
+  return false;
+}
+
+ Map<String, dynamic>? _getBestARStructure(
+    double roofArea, List<dynamic> arData) {
+  final matching = arData.where((item) {
+    final range = (item["arroofarea(sqm)"] ?? item["arroofarea"] ?? "").toString();
+    return matchesRange(range, roofArea);
+  }).toList();
+
+  if (matching.isEmpty) return null;
+
+  // FIX: parse cost safely
+  matching.sort((a, b) {
+    double costA = double.tryParse(a["artotalcost"].toString()) ?? double.infinity;
+    double costB = double.tryParse(b["artotalcost"].toString()) ?? double.infinity;
+    return costA.compareTo(costB);
+  });
+
+  return matching.first as Map<String, dynamic>;
+}
+
+
+ 
+
+Map<String, dynamic>? getBestARStructure(
+    double roofArea, List<Map<String, dynamic>> data) {
+  if (data.isEmpty) return null;
+
+  List<Map<String, dynamic>> matching = data.where((row) {
+    return matchesRange(row["arroofarea(sqm)"], roofArea);
+  }).toList();
+
+  if (matching.isEmpty) return null;
+
+  matching.sort((a, b) {
+    double costA = double.tryParse(a["artotalcost"].toString()) ?? double.infinity;
+    double costB = double.tryParse(b["artotalcost"].toString()) ?? double.infinity;
+    return costA.compareTo(costB);
+  });
+
+  return matching.first;
+}
+
 
   /// ---------------- Main calculation & navigation ----------------
+
   Future<void> _navigateToResult() async {
-    setState(() => _isLoading = true);
+  if (!_formKey.currentState!.validate()) return;
 
-    double roofAreaSqm = double.tryParse(_roofAreaController.text) ?? 0;
+  setState(() => _isLoading = true);
 
-    double runoffCoeffAR = runoffCoeff[_roofType?.toLowerCase()] ?? 0.75;
+  final String district = _locationController.text.trim();
+  final double roofAreaSqm = double.tryParse(_roofAreaController.text) ?? 0.0;
+  final String roofMat = _roofType ?? "concrete";
 
-    // Simple recharge estimation
-    double porosity = 0.45;
-    double rechargeLiters = porosity * 1000 * roofAreaSqm * runoffCoeffAR;
+  // 1. Fetch API data
+  final rainfall = await _fetchRainfallData(district);
+  final districtData = await _fetchDistrictData(district);
+  final arCostList = await fetchARDataFromAPI();
 
-    // Load AR cost data
-    List<dynamic> data = await loadARCostData();
-    Map<String, dynamic>? match;
-    try {
-      match = data.firstWhere(
-        (row) => (row['Structure'] ?? '').toString().toLowerCase() == "pit",
-      );
-    } catch (_) {
-      match = null;
-    }
+  // 2. Extract district-based values
+  double porosity         = districtData?["porosity"] ?? 0.40;
+  String soilType         = districtData?["soiltype"] ?? "unknown";
+  double groundwaterLevel = districtData?["groundwaterlevel"] ?? 15.0;
+  double evaporation      = districtData?["evaporation"] ?? 1200.0;
 
-    double totalCost = 16791.5; // fallback
-    if (match != null) {
-      totalCost = double.tryParse(match['totalcost'].toString()) ?? totalCost;
-    }
+  double annualRainfall = rainfall['annual'];
 
-    double groundwaterLevel = await fetchGroundwaterLevel(_city);
+  // Roof runoff coefficient
+  double runoff = runoffCoeff[roofMat.toLowerCase()] ?? 0.75;
 
-    setState(() => _isLoading = false);
+  // 3. Calculate RRWH Potential
+  double rrwhPotential = calculateRRWHPotential(
+    annualRainfall: annualRainfall,
+    roofArea: roofAreaSqm,
+    runoffCoefficient: runoff,
+  );
 
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text("Artificial Recharge Result"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text("Recharge Potential: ${rechargeLiters.toStringAsFixed(0)} L"),
-            const SizedBox(height: 10),
-            Text("Estimated Cost: ₹${totalCost.toStringAsFixed(0)}"),
-            const SizedBox(height: 10),
-            Text("Groundwater Level: ${groundwaterLevel.toStringAsFixed(1)} m"),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text("Close"),
-          ),
-        ],
-      ),
-    );
-  }
+  // 4. Calculate AR Potential
+  double arPotential = calculateARPotential(
+    annualRainfall: annualRainfall,
+    roofArea: roofAreaSqm,
+    porosity: porosity,
+    runoffCoefficient: runoff,
+  );
+
+  // 5. Select best AR structure (dynamic map)
+  final Map<String, dynamic>? bestStructure =
+      _getBestARStructure(roofAreaSqm, arCostList);
+
+  setState(() => _isLoading = false);
+
+  // Convert values safely
+double? parsedTotalCost = bestStructure?["artotalcost"] != null
+    ? double.tryParse(bestStructure!["artotalcost"].toString())
+    : null;
+
+double? parsedMaxCost = bestStructure?["armaxcost"] != null
+    ? double.tryParse(bestStructure!["armaxcost"].toString())
+    : null;
+
+String? pipeType = bestStructure?["arpipetype"]?.toString();
+String? pipeSize = bestStructure?["arpipesize(mm)"]?.toString();
+debugPrint("🏗️ BEST STRUCTURE (RAW MAP): $bestStructure");
+debugPrint("💰 PARSED TOTAL COST: $parsedTotalCost");
+  debugPrint("💰 PARSED MAX COST: $parsedMaxCost");
+  debugPrint("🚰 PIPE TYPE: $pipeType");
+  debugPrint("📏 PIPE SIZE: $pipeSize");
+
+  // 6. Navigate with full dataset
+  Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (_) => ARResultPage(
+      district: district,
+      roofArea: roofAreaSqm,
+      roofMaterial: roofMat,
+      rrwhPotential: rrwhPotential,
+      arPotential: arPotential,
+      soilType: soilType,
+      porosity: porosity,
+      evaporation: evaporation,
+      groundwaterLevel: groundwaterLevel,
+      annualRainfall: annualRainfall,
+
+      arStructure: bestStructure,
+      arTotalCost: parsedTotalCost,
+      arMaxCost: parsedMaxCost,
+      pipeType: pipeType,
+      pipeSize: pipeSize,
+
+      fullDistrictData: districtData,
+    ),
+  ),
+);
+  
+}
 
   @override
   Widget build(BuildContext context) {
@@ -359,67 +576,7 @@ class _ArtificialRechargeFormState extends State<ArtificialRechargeForm> {
                                           () => _roofType = value ?? "concrete",
                                         ),
                                       ),
-                                      buildExpandableSelector(
-                                        context: context,
-                                        title: 'Select Soil Type',
-                                        validator: (value) => validateDropdown(value, 'soil Type'),
-                                        icon: Icons.landscape,
-                                        options: [
-                                          {
-                                            'value': 'Alluvial soil',
-                                            'label': 'Alluvial soil',
-                                            'image': 'assets/images/alluvial.jpg',
-                                          },
-                                          {
-                                            'value': 'Black soil (Regur)',
-                                            'label': 'Black soil (Regur)',
-                                            'image':
-                                                'assets/images/black_soil.jpg',
-                                          },
-                                          {
-                                            'value': 'Red and Yellow soil',
-                                            'label': 'Red and Yellow soil',
-                                            'image':
-                                                'assets/images/red_yellow.JPG',
-                                          },
-                                          {
-                                            'value': 'Laterite soil',
-                                            'label': 'Laterite soil',
-                                            'image':
-                                                'assets/images/laterite_soil.jpg',
-                                          },
-                                          {
-                                            'value': 'Arid (Desert) soil',
-                                            'label': 'Arid (Desert) soil',
-                                            'image': 'assets/images/arid.jpg',
-                                          },
-                                          {
-                                            'value': 'Forest soil',
-                                            'label': 'Forest soil',
-                                            'image': 'assets/images/forest.jpg',
-                                          },
-                                          {
-                                            'value': 'Saline soil',
-                                            'label': 'Saline soil',
-                                            'image': 'assets/images/saline.jpg',
-                                          },
-                                          {
-                                            'value': 'Peaty soil',
-                                            'label': 'Peaty soil',
-                                            'image': 'assets/images/peaty.jpg',
-                                          },
-                                        ],
-                                        selectedValue: _soilType,
-                                        isExpanded: _isSoilTypeExpanded,
-                                        onToggle: () => setState(
-                                          () => _isSoilTypeExpanded =
-                                              !_isSoilTypeExpanded,
-                                        ),
-                                        onChanged: (value) => setState(
-                                          () => _soilType =
-                                              value ?? "Alluvial soil",
-                                        ),
-                                      ),
+                                     
                                     ],
                                   ),
                                 ),
@@ -472,63 +629,7 @@ class _ArtificialRechargeFormState extends State<ArtificialRechargeForm> {
                                   hint: "Enter no of floors",
                                   icon: Icons.business,
                                 ),
-                                buildExpandableSelector(
-                                  context: context,
-                                  title: 'Select Soil Type',
-                                  validator: (value) => validateDropdown(value, 'Roof Type'),
-                                  icon: Icons.landscape,
-                                  options: [
-                                    {
-                                      'value': 'Alluvial soil',
-                                      'label': 'Alluvial soil',
-                                      'image': 'assets/images/alluvial.jpg',
-                                    },
-                                    {
-                                      'value': 'Black soil (Regur)',
-                                      'label': 'Black soil (Regur)',
-                                      'image': 'assets/images/black_soil.jpg',
-                                    },
-                                    {
-                                      'value': 'Red and Yellow soil',
-                                      'label': 'Red and Yellow soil',
-                                      'image': 'assets/images/red_yellow.JPG',
-                                    },
-                                    {
-                                      'value': 'Laterite soil',
-                                      'label': 'Laterite soil',
-                                      'image': 'assets/images/laterite_soil.jpg',
-                                    },
-                                    {
-                                      'value': 'Arid (Desert) soil',
-                                      'label': 'Arid (Desert) soil',
-                                      'image': 'assets/images/arid.jpg',
-                                    },
-                                    {
-                                      'value': 'Forest soil',
-                                      'label': 'Forest soil',
-                                      'image': 'assets/images/forest.jpg',
-                                    },
-                                    {
-                                      'value': 'Saline soil',
-                                      'label': 'Saline soil',
-                                      'image': 'assets/images/saline.jpg',
-                                    },
-                                    {
-                                      'value': 'Peaty soil',
-                                      'label': 'Peaty soil',
-                                      'image': 'assets/images/peaty.jpg',
-                                    },
-                                  ],
-                                  selectedValue: _soilType,
-                                  isExpanded: _isSoilTypeExpanded,
-                                  onToggle: () => setState(
-                                    () => _isSoilTypeExpanded =
-                                        !_isSoilTypeExpanded,
-                                  ),
-                                  onChanged: (value) => setState(
-                                    () => _soilType = value ?? "Alluvial soil",
-                                  ),
-                                ),
+                                
                               ],
                             ),
                       const SizedBox(height: 28),
