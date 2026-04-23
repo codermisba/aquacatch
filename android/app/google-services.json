@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "876820605912",
+    "project_id": "aquacatch-17d46",
+    "storage_bucket": "aquacatch-17d46.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:876820605912:android:2c1555091bb9d54e8b60ad",
+        "android_client_info": {
+          "package_name": "com.example.aquacatch"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCt-iCT83De7aueu4obApoHDMdXnStGb0U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
